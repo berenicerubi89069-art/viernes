@@ -1,0 +1,4765 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Viernes - Asistente Personal</title>
+  <link rel="icon" type="image/x-icon" href="jarvis.ico">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#06090e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Viernes">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    /* ==========================================================================
+       VARIABLES Y TEMA OSCURO CINEMATOGRÁFICO
+       ========================================================================== */
+    :root {
+      --bg-dark: #06090e;
+      --bg-card: rgba(14, 20, 31, 0.75);
+      --bg-card-hover: rgba(20, 29, 45, 0.85);
+      --bg-input: rgba(11, 16, 26, 0.9);
+      --accent-cyan: #00f0ff;
+      --accent-blue: #0099ff;
+      --accent-glow: rgba(0, 240, 255, 0.35);
+      --accent-glow-strong: rgba(0, 240, 255, 0.75);
+      --text-main: #f0f4f8;
+      --text-muted: #8b9bb4;
+      --text-dim: #4f5f76;
+      --border-subtle: rgba(0, 240, 255, 0.15);
+      --border-focus: rgba(0, 240, 255, 0.6);
+      --user-bubble: linear-gradient(135deg, #0e2a47 0%, #0d1e33 100%);
+      --viernes-bubble: rgba(13, 19, 31, 0.85);
+      --error-bg: rgba(60, 15, 20, 0.85);
+      --error-border: #ff334b;
+      --error-text: #ff7081;
+      --success-glow: rgba(0, 255, 170, 0.4);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "Fira Code", Consolas, "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      height: 100%;
+      height: 100vh;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 10%, rgba(0, 150, 255, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 50% 90%, rgba(0, 240, 255, 0.04) 0%, transparent 50%);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      height: 100%;
+      height: 100vh;
+      height: 100dvh;
+      max-height: 100vh;
+      max-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: text;
+    }
+
+    /* Patrón de cuadrícula futurista sutil */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(0, 240, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.015) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ==========================================================================
+       CABECERA Y ORBE DEL REACTOR ARC
+       ========================================================================== */
+    header {
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px 20px 10px;
+      background: linear-gradient(180deg, rgba(6, 9, 14, 0.95) 0%, rgba(6, 9, 14, 0.7) 100%);
+      border-bottom: 1px solid var(--border-subtle);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .header-top {
+      width: 100%;
+      max-width: 1000px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .brand-title {
+      font-size: 13px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent-cyan);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-icon:hover {
+      background: rgba(0, 240, 255, 0.1);
+      border-color: var(--border-focus);
+      color: var(--text-main);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+    }
+
+    /* BOTÓN E INDICADOR DE WAKE-WORD ("OYE VIERNES") */
+    .wake-word-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #64748b;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .wake-word-dot.active {
+      background: #00ffaa;
+      box-shadow: 0 0 8px #00ffaa;
+    }
+
+    .wake-word-dot.capturing {
+      background: #00f0ff;
+      box-shadow: 0 0 12px #00f0ff;
+      animation: micPulse 1s infinite ease-in-out;
+    }
+
+    #btnWakeWordToggle.active {
+      border-color: rgba(0, 255, 170, 0.4);
+      color: #a7f3d0;
+      background: rgba(0, 255, 170, 0.08);
+    }
+
+    #btnWakeWordToggle.active:hover {
+      border-color: rgba(0, 255, 170, 0.7);
+      box-shadow: 0 0 12px rgba(0, 255, 170, 0.25);
+    }
+
+    #btnWakeWordToggle.capturing {
+      border-color: rgba(0, 240, 255, 0.8);
+      color: #ffffff;
+      background: rgba(0, 240, 255, 0.18);
+      box-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
+    }
+
+    /* REACTOR ARC CENTRAL */
+    .reactor-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      padding: 4px 0 2px;
+    }
+
+    .reactor-orb {
+      position: relative;
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s ease;
+    }
+
+    /* Aura de respiración */
+    .orb-aura {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 240, 255, 0.35) 0%, rgba(0, 150, 255, 0.12) 50%, transparent 72%);
+      animation: breathe 3.6s ease-in-out infinite alternate;
+    }
+
+    /* Anillo exterior segmentado */
+    .orb-ring-outer {
+      position: absolute;
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: 1.5px dashed rgba(0, 240, 255, 0.55);
+      animation: rotateCw 24s linear infinite;
+    }
+
+    /* Anillo medio con segmentos sólidos */
+    .orb-ring-mid {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 180, 255, 0.3);
+      border-top-color: var(--accent-cyan);
+      border-bottom-color: var(--accent-cyan);
+      animation: rotateCcw 14s linear infinite;
+    }
+
+    /* Anillo interior brillante */
+    .orb-ring-inner {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 240, 255, 0.7);
+      box-shadow: 0 0 12px var(--accent-cyan);
+    }
+
+    /* Núcleo de energía */
+    .orb-core {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffffff 10%, #a5f3fc 40%, #00f0ff 80%);
+      box-shadow: 0 0 16px var(--accent-cyan), 0 0 30px rgba(0, 150, 255, 0.8);
+      animation: corePulse 3.6s ease-in-out infinite alternate;
+    }
+
+    /* Estado cuando Viernes está PENSANDO */
+    .thinking .orb-aura {
+      animation: breatheFast 0.8s ease-in-out infinite alternate;
+      background: radial-gradient(circle, rgba(0, 240, 255, 0.6) 0%, rgba(0, 200, 255, 0.3) 50%, transparent 80%);
+    }
+
+    .thinking .orb-ring-outer {
+      animation: rotateCw 4s linear infinite;
+      border-color: #ffffff;
+      box-shadow: 0 0 18px var(--accent-cyan);
+    }
+
+    .thinking .orb-ring-mid {
+      animation: rotateCcw 2.5s linear infinite;
+      border-top-color: #ffffff;
+      border-bottom-color: #ffffff;
+    }
+
+    .thinking .orb-core {
+      animation: coreFastPulse 0.8s ease-in-out infinite alternate;
+      box-shadow: 0 0 24px #ffffff, 0 0 45px var(--accent-cyan);
+    }
+
+    /* Estado cuando Viernes está HABLANDO (Voz activa) */
+    .speaking .orb-aura {
+      animation: voiceAuraPulse 0.45s ease-in-out infinite alternate;
+      background: radial-gradient(circle, rgba(0, 240, 255, 0.8) 0%, rgba(0, 150, 255, 0.45) 45%, transparent 75%);
+    }
+
+    .speaking .orb-ring-outer {
+      animation: rotateCw 3s linear infinite, voiceWaveOuter 0.5s ease-in-out infinite alternate;
+      border-color: #ffffff;
+      box-shadow: 0 0 22px var(--accent-cyan);
+    }
+
+    .speaking .orb-ring-mid {
+      animation: rotateCcw 2.2s linear infinite, voiceWaveMid 0.4s ease-in-out infinite alternate;
+      border-top-color: #ffffff;
+      border-bottom-color: #00f0ff;
+    }
+
+    .speaking .orb-ring-inner {
+      animation: voiceRingInner 0.4s ease-in-out infinite alternate;
+      box-shadow: 0 0 18px #00f0ff;
+    }
+
+    .speaking .orb-core {
+      animation: voiceCorePulse 0.35s ease-in-out infinite alternate;
+      box-shadow: 0 0 30px #ffffff, 0 0 55px var(--accent-cyan);
+    }
+
+    /* Estado cuando el usuario está HABLANDO POR MICRÓFONO */
+    .listening .orb-aura {
+      animation: listenAura 0.5s ease-in-out infinite alternate;
+      background: radial-gradient(circle, rgba(0, 255, 170, 0.7) 0%, rgba(0, 200, 255, 0.25) 50%, transparent 75%);
+    }
+
+    .listening .orb-ring-outer {
+      animation: rotateCw 5s linear infinite;
+      border-color: #00ffaa;
+      box-shadow: 0 0 20px rgba(0, 255, 170, 0.8);
+    }
+
+    .listening .orb-ring-mid {
+      animation: rotateCcw 3s linear infinite;
+      border-top-color: #00ffaa;
+      border-bottom-color: #00ffaa;
+    }
+
+    .listening .orb-core {
+      background: radial-gradient(circle, #ffffff 10%, #a7f3d0 40%, #00ffaa 80%);
+      box-shadow: 0 0 25px #00ffaa, 0 0 45px rgba(0, 255, 170, 0.8);
+      animation: coreFastPulse 0.6s ease-in-out infinite alternate;
+    }
+
+    .status-text {
+      margin-top: 5px;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.3s ease;
+    }
+
+    .thinking .status-text {
+      color: var(--accent-cyan);
+      text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+    }
+
+    .speaking .status-text {
+      color: var(--accent-cyan);
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.85);
+      animation: textPulseGlow 0.8s ease-in-out infinite alternate;
+    }
+
+    .listening .status-text {
+      color: #00ffaa;
+      text-shadow: 0 0 10px rgba(0, 255, 170, 0.8);
+    }
+
+    /* ANIMACIONES DEL REACTOR */
+    @keyframes breathe {
+      0% { transform: scale(0.92); opacity: 0.55; }
+      100% { transform: scale(1.15); opacity: 0.95; }
+    }
+
+    @keyframes breatheFast {
+      0% { transform: scale(0.95); opacity: 0.7; }
+      100% { transform: scale(1.3); opacity: 1; }
+    }
+
+    @keyframes rotateCw {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes rotateCcw {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(-360deg); }
+    }
+
+    @keyframes corePulse {
+      0% { transform: scale(0.9); opacity: 0.85; }
+      100% { transform: scale(1.1); opacity: 1; }
+    }
+
+    @keyframes coreFastPulse {
+      0% { transform: scale(0.9); filter: brightness(1); }
+      100% { transform: scale(1.25); filter: brightness(1.4); }
+    }
+
+    @keyframes voiceAuraPulse {
+      0% { transform: scale(0.96); opacity: 0.7; }
+      100% { transform: scale(1.35); opacity: 1; }
+    }
+
+    @keyframes voiceWaveOuter {
+      0% { transform: scale(0.98); }
+      100% { transform: scale(1.08); }
+    }
+
+    @keyframes voiceWaveMid {
+      0% { transform: scale(0.95); }
+      100% { transform: scale(1.12); }
+    }
+
+    @keyframes voiceRingInner {
+      0% { transform: scale(0.92); opacity: 0.8; }
+      100% { transform: scale(1.18); opacity: 1; }
+    }
+
+    @keyframes voiceCorePulse {
+      0% { transform: scale(0.88); filter: brightness(1); }
+      100% { transform: scale(1.32); filter: brightness(1.5); }
+    }
+
+    @keyframes listenAura {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      100% { transform: scale(1.25); opacity: 0.95; }
+    }
+
+    @keyframes textPulseGlow {
+      0% { opacity: 0.75; }
+      100% { opacity: 1; }
+    }
+
+    /* ==========================================================================
+       ÁREA DEL CHAT / MENSAJES
+       ========================================================================== */
+    main {
+      flex: 1 1 0px;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+      scroll-behavior: smooth;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .message-row {
+      display: flex;
+      width: 100%;
+      animation: fadeInMsg 0.25s ease-out;
+    }
+
+    @keyframes fadeInMsg {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-row.user {
+      justify-content: flex-end;
+    }
+
+    .message-row.viernes {
+      justify-content: flex-start;
+    }
+
+    .message-bubble {
+      max-width: 82%;
+      padding: 14px 18px;
+      border-radius: 14px;
+      font-size: 14.5px;
+      line-height: 1.6;
+      word-wrap: break-word;
+      position: relative;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    @media (max-width: 600px) {
+      .message-bubble {
+        max-width: 92%;
+        font-size: 14px;
+        padding: 12px 14px;
+      }
+    }
+
+    /* Burbuja Usuario */
+    .message-row.user .message-bubble {
+      background: var(--user-bubble);
+      color: #ffffff;
+      border: 1px solid rgba(0, 180, 255, 0.35);
+      border-top-right-radius: 3px;
+    }
+
+    /* Burbuja Viernes */
+    .message-row.viernes .message-bubble {
+      background: var(--viernes-bubble);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-left: 3px solid var(--accent-cyan);
+      border-top-left-radius: 3px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .message-author {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .message-row.user .message-author {
+      color: #7dd3fc;
+      justify-content: flex-end;
+    }
+
+    .message-row.viernes .message-author {
+      color: var(--accent-cyan);
+    }
+
+    /* FORMATO DE TEXTO Y MARKDOWN DENTRO DE LOS MENSAJES */
+    .message-content p {
+      margin-bottom: 10px;
+    }
+
+    .message-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .message-content strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .message-content ul, .message-content ol {
+      margin: 8px 0 10px 20px;
+    }
+
+    .message-content li {
+      margin-bottom: 4px;
+    }
+
+    .message-content blockquote {
+      border-left: 3px solid var(--accent-blue);
+      padding-left: 12px;
+      margin: 10px 0;
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    .message-content code {
+      font-family: var(--font-mono);
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #38bdf8;
+    }
+
+    .code-block-wrapper {
+      position: relative;
+      margin: 12px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      background: #04060a;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(14, 23, 38, 0.9);
+      padding: 6px 12px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: #7dd3fc;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+    }
+
+    .code-copy-btn {
+      background: transparent;
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .code-copy-btn:hover {
+      background: rgba(0, 240, 255, 0.15);
+      color: #ffffff;
+    }
+
+    .message-content pre {
+      margin: 0;
+      padding: 12px 14px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.5;
+      color: #e2e8f0;
+      background: #05070c;
+    }
+
+    /* INDICADOR DE PENSAMIENTO EN EL CHAT */
+    .thinking-bubble {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      background: var(--viernes-bubble);
+      border: 1px solid var(--border-subtle);
+      border-left: 3px solid var(--accent-cyan);
+      border-radius: 14px;
+      border-top-left-radius: 3px;
+      color: var(--accent-cyan);
+      font-size: 13.5px;
+      letter-spacing: 0.5px;
+    }
+
+    .thinking-dots {
+      display: inline-flex;
+      gap: 5px;
+    }
+
+    .thinking-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+      animation: blinkDots 1.4s infinite ease-in-out both;
+    }
+
+    .thinking-dot:nth-child(1) { animation-delay: -0.32s; }
+    .thinking-dot:nth-child(2) { animation-delay: -0.16s; }
+    .thinking-dot:nth-child(3) { animation-delay: 0; }
+
+    @keyframes blinkDots {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+      40% { transform: scale(1.2); opacity: 1; }
+    }
+
+    /* ==========================================================================
+       TARJETA DE ERROR TÉCNICO COMPLETO (REQUISITO 1)
+       ========================================================================== */
+    .technical-error-card {
+      margin-top: 12px;
+      background: #0c080d;
+      border: 1px solid var(--error-border);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 12.5px;
+    }
+
+    .error-card-header {
+      background: rgba(255, 51, 75, 0.15);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 51, 75, 0.3);
+      color: #ff94a2;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .error-code-badge {
+      background: #ff334b;
+      color: #ffffff;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .error-card-body {
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .error-field-label {
+      color: #94a3b8;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .error-field-value {
+      font-family: var(--font-mono);
+      color: #fca5a5;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 6px 8px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    .error-actions {
+      padding: 8px 12px;
+      background: rgba(255, 51, 75, 0.05);
+      border-top: 1px solid rgba(255, 51, 75, 0.15);
+      display: flex;
+      gap: 8px;
+    }
+
+    .error-btn {
+      background: rgba(255, 51, 75, 0.2);
+      border: 1px solid var(--error-border);
+      color: #ffffff;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .error-btn:hover {
+      background: rgba(255, 51, 75, 0.4);
+    }
+
+    /* ==========================================================================
+       BARRA DE ENTRADA / INPUT INFERIOR
+       ========================================================================== */
+    footer {
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+      padding: 12px 16px 16px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      background: linear-gradient(0deg, rgba(6, 9, 14, 0.98) 0%, rgba(6, 9, 14, 0.85) 100%);
+      border-top: 1px solid var(--border-subtle);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .input-container {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-box {
+      display: flex;
+      align-items: flex-end;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 6px 8px 6px 14px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      transition: all 0.25s ease;
+    }
+
+    .input-box:focus-within {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    textarea#userInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 14.5px;
+      line-height: 1.45;
+      resize: none;
+      max-height: 140px;
+      min-height: 24px;
+      padding: 6px 0;
+    }
+
+    textarea#userInput::placeholder {
+      color: var(--text-dim);
+    }
+
+    .send-btn {
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-cyan) 100%);
+      border: none;
+      border-radius: 8px;
+      color: #030712;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    .send-btn:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 0 14px var(--accent-glow-strong);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* BOTÓN DE MICRÓFONO */
+    .mic-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: var(--text-muted);
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      margin-left: 6px;
+    }
+
+    .mic-btn:hover {
+      background: rgba(0, 240, 255, 0.12);
+      border-color: var(--border-focus);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+    }
+
+    .mic-btn.listening {
+      background: rgba(255, 51, 75, 0.25);
+      border-color: #ff334b;
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(255, 51, 75, 0.8);
+      animation: micPulse 1.2s infinite ease-in-out;
+    }
+
+    @keyframes micPulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 51, 75, 0.6); }
+      50% { transform: scale(1.08); box-shadow: 0 0 18px rgba(255, 51, 75, 0.9); }
+      100% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 51, 75, 0); }
+    }
+
+    /* BANNER FLOTANTE DE ENTRADA POR VOZ */
+    .voice-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 255, 170, 0.1);
+      border: 1px solid rgba(0, 255, 170, 0.35);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12.5px;
+      color: #a7f3d0;
+      animation: fadeInMsg 0.2s ease-out;
+    }
+
+    .voice-banner-indicator {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #00ffaa;
+      box-shadow: 0 0 10px #00ffaa;
+      animation: micPulse 0.9s infinite ease-in-out;
+      flex-shrink: 0;
+    }
+
+    .voice-banner-stop {
+      margin-left: auto;
+      background: transparent;
+      border: none;
+      color: #a7f3d0;
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 4px;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .voice-banner-stop:hover {
+      opacity: 1;
+      color: #ffffff;
+    }
+
+    .input-hint {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-dim);
+      padding: 0 4px;
+    }
+
+    /* BOTÓN ADJUNTAR ARCHIVO */
+    .attach-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: var(--text-muted);
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      margin-right: 6px;
+    }
+
+    .attach-btn:hover {
+      background: rgba(0, 240, 255, 0.12);
+      border-color: var(--border-focus);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+    }
+
+    /* BARRA DE PREVISUALIZACIÓN DE ARCHIVO ADJUNTO */
+    .attachment-preview-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: fadeInMsg 0.2s ease-out;
+      margin-bottom: 2px;
+    }
+
+    .attachment-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(14, 25, 42, 0.9);
+      border: 1px solid var(--border-focus);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--text-main);
+    }
+
+    .attachment-chip .attachment-icon {
+      color: var(--accent-cyan);
+      flex-shrink: 0;
+    }
+
+    .attachment-chip .attachment-name {
+      font-weight: 600;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .attachment-chip .attachment-size {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .attachment-remove-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 16px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 4px;
+      transition: color 0.2s;
+    }
+
+    .attachment-remove-btn:hover {
+      color: #ff334b;
+    }
+
+    /* TARJETA DE ADJUNTO DENTRO DE LA BURBUJA DEL CHAT */
+    .msg-attachment-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(4, 9, 16, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-left: 3px solid var(--accent-cyan);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      font-size: 12.5px;
+    }
+
+    .msg-attachment-card .file-icon-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 10.5px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .msg-attachment-card .file-details {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .msg-attachment-card .file-name {
+      font-weight: 600;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .msg-attachment-card .file-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .msg-attachment-image {
+      max-width: 280px;
+      max-height: 200px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      margin-bottom: 8px;
+      display: block;
+      object-fit: cover;
+    }
+
+    /* OVERLAY COMPLETO DE DRAG & DROP AL ARRASTRAR ARCHIVOS */
+    .drag-drop-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(3, 6, 11, 0.9);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.22s ease;
+    }
+
+    .drag-drop-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drag-drop-card {
+      background: rgba(8, 14, 24, 0.95);
+      border: 2px dashed var(--accent-cyan);
+      border-radius: 20px;
+      padding: 40px 50px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 0 45px rgba(0, 240, 255, 0.35), inset 0 0 30px rgba(0, 240, 255, 0.1);
+      animation: dropCardPulse 2s infinite ease-in-out;
+      max-width: 500px;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    @keyframes dropCardPulse {
+      0% { transform: scale(1); box-shadow: 0 0 40px rgba(0, 240, 255, 0.25); }
+      50% { transform: scale(1.02); box-shadow: 0 0 55px rgba(0, 240, 255, 0.45); }
+      100% { transform: scale(1); box-shadow: 0 0 40px rgba(0, 240, 255, 0.25); }
+    }
+
+    .drag-drop-icon {
+      color: var(--accent-cyan);
+      animation: floatIcon 1.5s infinite ease-in-out alternate;
+    }
+
+    @keyframes floatIcon {
+      from { transform: translateY(-4px); }
+      to { transform: translateY(6px); }
+    }
+
+    .drag-drop-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+    }
+
+    .drag-drop-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Ajuste responsivo de la barra superior */
+    @media (max-width: 680px) {
+      .header-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .header-actions .btn-icon span {
+        display: none;
+      }
+      .header-actions .btn-icon {
+        padding: 6px 9px;
+      }
+    }
+
+    /* ==========================================================================
+       MODAL DE CONFIGURACIÓN Y CLAVE API
+       ========================================================================== */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(3, 5, 8, 0.82);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 16px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: #0a0f18;
+      border: 1px solid var(--border-focus);
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.25);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 480px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transform: scale(0.95);
+      transition: transform 0.25s ease;
+    }
+
+    .modal-overlay.active .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-title {
+      font-size: 16px;
+      letter-spacing: 2px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 11.5px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+
+    .input-key-wrapper {
+      display: flex;
+      background: #05080e;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .input-key-wrapper:focus-within {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .input-key-wrapper input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #ffffff;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .toggle-visibility-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    .select-model {
+      background: #05080e;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: #ffffff;
+      padding: 10px 12px;
+      outline: none;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    .select-model:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    .select-model option {
+      background: #0a0f18;
+      color: #ffffff;
+    }
+
+    .link-studio {
+      color: var(--accent-cyan);
+      text-decoration: none;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .link-studio:hover {
+      text-decoration: underline;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-cyan) 100%);
+      border: none;
+      color: #030712;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    /* ==========================================================================
+       PANEL LATERAL / DRAWER DE SESIONES Y MEMORIAS
+       ========================================================================== */
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(3, 5, 8, 0.7);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 120;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s ease;
+    }
+
+    .drawer-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 340px;
+      max-width: 86vw;
+      height: 100%;
+      height: 100vh;
+      height: 100dvh;
+      background: #070b13;
+      border-right: 1px solid var(--border-subtle);
+      box-shadow: 10px 0 35px rgba(0, 0, 0, 0.7);
+      z-index: 130;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .drawer.active {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(14, 20, 31, 0.6);
+      flex-shrink: 0;
+    }
+
+    .drawer-title {
+      font-size: 13px;
+      letter-spacing: 2px;
+      color: var(--accent-cyan);
+      font-weight: 700;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-close-drawer {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px;
+      transition: color 0.2s;
+    }
+
+    .btn-close-drawer:hover {
+      color: #ffffff;
+    }
+
+    .drawer-search-box {
+      position: relative;
+      padding: 12px 14px 6px;
+      flex-shrink: 0;
+    }
+
+    .drawer-search-box input {
+      width: 100%;
+      background: #0c121d;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 8px 30px 8px 32px;
+      color: var(--text-main);
+      font-size: 12.5px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .drawer-search-box input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 24px;
+      top: 21px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    .clear-search-btn {
+      position: absolute;
+      right: 22px;
+      top: 18px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .drawer-action-bar {
+      padding: 8px 14px 10px;
+      flex-shrink: 0;
+    }
+
+    .btn-primary-drawer {
+      width: 100%;
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px dashed var(--border-focus);
+      color: var(--accent-cyan);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary-drawer:hover {
+      background: rgba(0, 240, 255, 0.18);
+      box-shadow: 0 0 12px var(--accent-glow);
+      color: #ffffff;
+    }
+
+    /* Alerta de almacenamiento */
+    .storage-warning-card {
+      margin: 4px 14px 8px;
+      background: rgba(255, 51, 75, 0.15);
+      border: 1px solid var(--error-border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 11.5px;
+      color: #ff94a2;
+      line-height: 1.4;
+      flex-shrink: 0;
+    }
+
+    .storage-warning-card strong {
+      display: block;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+
+    .drawer-sessions-list {
+      flex: 1 1 0px;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 6px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .session-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(14, 20, 31, 0.5);
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .session-item:hover {
+      background: rgba(20, 30, 48, 0.7);
+      border-color: var(--border-subtle);
+    }
+
+    .session-item.active {
+      background: rgba(0, 240, 255, 0.08);
+      border-color: var(--border-focus);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+    }
+
+    .session-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .session-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 3px;
+    }
+
+    .session-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-delete-session {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-delete-session:hover {
+      color: #ff4d6d;
+      background: rgba(255, 51, 75, 0.15);
+    }
+
+    .search-snippet {
+      margin-top: 5px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.35);
+      padding: 4px 6px;
+      border-radius: 4px;
+      line-height: 1.35;
+    }
+
+    .search-snippet mark {
+      background: rgba(0, 240, 255, 0.4);
+      color: #ffffff;
+      padding: 1px 3px;
+      border-radius: 2px;
+      font-weight: 600;
+    }
+
+    .drawer-footer {
+      flex-shrink: 0;
+      padding: 12px 14px 16px;
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(8, 12, 19, 0.95);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .storage-meter-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .storage-bar-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .storage-bar-fill {
+      height: 100%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 6px var(--accent-cyan);
+      transition: width 0.3s ease;
+    }
+
+    .backup-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-backup {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 11.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-backup:hover {
+      background: rgba(0, 240, 255, 0.1);
+      border-color: var(--border-focus);
+      color: #ffffff;
+    }
+
+    /* Resaltado de mensaje encontrado */
+    .msg-highlight {
+      animation: searchPulse 2.2s ease-in-out;
+    }
+
+    @keyframes searchPulse {
+      0% { box-shadow: 0 0 0 rgba(0, 240, 255, 0); }
+      35% { box-shadow: 0 0 25px rgba(0, 240, 255, 0.9); border-color: #00f0ff; }
+      100% { box-shadow: 0 0 0 rgba(0, 240, 255, 0); }
+    }
+
+    /* ==========================================================================
+       MODAL DE FICHA PERSONAL DEL USUARIO
+       ========================================================================== */
+    .profile-card {
+      max-width: 520px;
+    }
+
+    .input-text-standard {
+      background: #05080e;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: #ffffff;
+      padding: 9px 12px;
+      outline: none;
+      font-size: 13px;
+      font-family: inherit;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+
+    .input-text-standard:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .profile-facts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .fact-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .fact-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid var(--border-focus);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    /* Scrollbar estilizada */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 240, 255, 0.2);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 240, 255, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- OVERLAY DE ARRASTRAR Y SOLTAR DOCUMENTOS -->
+  <div class="drag-drop-overlay" id="dragDropOverlay" style="display: none;">
+    <div class="drag-drop-card">
+      <div class="drag-drop-icon">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <div class="drag-drop-title">Suelte el documento aquí</div>
+      <div class="drag-drop-desc">Viernes examinará su contenido (PDF, imagen o texto/código)</div>
+    </div>
+  </div>
+
+  <!-- PANEL LATERAL / DRAWER DE SESIONES Y MEMORIAS -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Sesiones de Charla</span>
+      </div>
+      <button class="btn-close-drawer" id="btnCloseDrawer" title="Cerrar panel">&times;</button>
+    </div>
+
+    <!-- Buscador de conversaciones pasadas -->
+    <div class="drawer-search-box">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="drawerSearchInput" placeholder="Buscar en todas las conversaciones..." autocomplete="off">
+      <button class="clear-search-btn" id="btnClearSearch" style="display:none;" title="Limpiar búsqueda">&times;</button>
+    </div>
+
+    <div class="drawer-action-bar">
+      <button class="btn-primary-drawer" id="btnDrawerNewChat">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Nueva Conversación</span>
+      </button>
+    </div>
+
+    <!-- Alerta preventiva si el almacenamiento del navegador se llena -->
+    <div class="storage-warning-card" id="storageWarningCard" style="display: none;">
+      <strong>⚠️ Memoria casi llena</strong>
+      <span id="storageWarningMsg">El almacenamiento local ha alcanzado el 80%. Guarde una copia de respaldo para no perder información.</span>
+    </div>
+
+    <!-- Lista de conversaciones -->
+    <div class="drawer-sessions-list" id="sessionsList">
+      <!-- Se inyectan dinámicamente -->
+    </div>
+
+    <!-- Pie del drawer con respaldo y medidor de memoria -->
+    <div class="drawer-footer">
+      <div class="storage-meter-row">
+        <span class="storage-label">Memoria local:</span>
+        <span class="storage-value" id="storageUsageLabel">0 KB / ~5 MB</span>
+      </div>
+      <div class="storage-bar-track">
+        <div class="storage-bar-fill" id="storageBarFill" style="width: 2%;"></div>
+      </div>
+      <div class="backup-actions">
+        <button class="btn-backup" id="btnExportMemory" title="Descargar copia completa de mi memoria en archivo JSON">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Guardar Copia</span>
+        </button>
+        <button class="btn-backup" id="btnImportMemory" title="Cargar memoria desde archivo JSON">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Cargar Copia</span>
+        </button>
+        <input type="file" id="fileImportInput" accept=".json" style="display: none;">
+      </div>
+    </div>
+  </aside>
+
+  <!-- CABECERA -->
+  <header>
+    <div class="header-top">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button class="btn-icon" id="btnToggleDrawer" title="Ver historial de sesiones y memorias">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <span>Sesiones</span>
+        </button>
+        <div class="brand-title">
+          <span class="brand-dot"></span>
+          <span>VIERNES</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon active" id="btnWakeWordToggle" title="Modo 'Oye Viernes' (Escucha continua en segundo plano)">
+          <span class="wake-word-dot active" id="wakeWordDot"></span>
+          <span id="wakeWordLabel">Oye Viernes: On</span>
+        </button>
+        <button class="btn-icon" id="btnVoiceToggle" title="Activar o silenciar respuestas en voz alta">
+          <svg id="voiceIconOn" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <svg id="voiceIconOff" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          <span id="voiceToggleLabel">Voz: On</span>
+        </button>
+        <button class="btn-icon" id="btnVoiceModal" title="Elegir y probar voz en español">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span id="activeVoiceLabel">Voz IA</span>
+        </button>
+        <button class="btn-icon" id="btnProfile" title="Ficha personal de Braulio (Nombre, profesión y 3 rasgos permanentes)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Mi Ficha</span>
+        </button>
+        <button class="btn-icon" id="btnNewChat" title="Comenzar nueva conversación">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Nueva Sesión</span>
+        </button>
+        <button class="btn-icon" id="btnSettings" title="Configurar clave API y modelo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span id="keyStatusLabel">Clave API</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- REACTOR ARC AZUL QUE RESPIRA DESPACIO -->
+    <div class="reactor-wrapper" id="reactorWrapper" title="Estado cognitivo de Viernes">
+      <div class="reactor-orb" id="reactorOrb">
+        <div class="orb-aura"></div>
+        <div class="orb-ring-outer"></div>
+        <div class="orb-ring-mid"></div>
+        <div class="orb-ring-inner"></div>
+        <div class="orb-core"></div>
+      </div>
+      <div class="status-text" id="statusText">EN ESPERA</div>
+    </div>
+  </header>
+
+  <!-- ÁREA DE CONVERSACIÓN -->
+  <main id="chatMain">
+    <div class="chat-container" id="chatContainer">
+      <!-- Los mensajes se inyectan dinámicamente aquí -->
+    </div>
+  </main>
+
+  <!-- ENTRADA DE MENSAJES -->
+  <footer>
+    <div class="input-container">
+      <!-- Indicador visual de voz activa mientras el usuario habla -->
+      <div class="voice-banner" id="voiceBanner" style="display: none;">
+        <div class="voice-banner-indicator"></div>
+        <span id="voiceBannerText">🎙️ Escuchando a Braulio... (hable ahora)</span>
+        <button class="voice-banner-stop" id="btnCancelMic" type="button" title="Cancelar entrada de voz">&times;</button>
+      </div>
+
+      <!-- Barra de archivo/documento adjunto -->
+      <div class="attachment-preview-bar" id="attachmentPreviewBar" style="display: none;">
+        <div class="attachment-chip">
+          <svg class="attachment-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          <span class="attachment-name" id="attachmentName">documento.pdf</span>
+          <span class="attachment-size" id="attachmentSize">(0 KB)</span>
+          <button type="button" class="attachment-remove-btn" id="btnRemoveAttachment" title="Quitar archivo adjunto">&times;</button>
+        </div>
+      </div>
+
+      <div class="input-box">
+        <button class="attach-btn" id="btnAttachFile" type="button" title="Adjuntar documento o imagen (PDF, PNG, JPG, TXT, código...)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <input type="file" id="fileAttachInput" accept=".pdf,image/*,text/*,.txt,.md,.csv,.json,.js,.py,.html,.css,.xml,.yaml,.yml,.log,.sh,.bat,.ps1,.sql" style="display: none;">
+        <textarea id="userInput" rows="1" placeholder="Escriba, hable o suelte un documento aquí... (Enter para enviar)"></textarea>
+        <button class="mic-btn" id="micBtn" type="button" title="Hablarle a Viernes por micrófono">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <button class="send-btn" id="sendBtn" title="Enviar mensaje">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+        </button>
+      </div>
+      <div class="input-hint">
+        <span>Viernes Inteligencia Artificial</span>
+        <span id="activeModelBadge">Modelo: gemini-3.8-flash</span>
+        <span id="bridgeStatusBadge" style="cursor: pointer; transition: color 0.3s;" title="Estado del puente de herramientas en Windows (start_bridge.bat)">Puente Local: Desconectado</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL DE CONFIGURACIÓN DE LLAVE -->
+  <div class="modal-overlay" id="apiKeyModal">
+    <div class="modal-card">
+      <div class="modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-1-1l-3 3m0 0l-3-3m3 3l-3 3m-2-1a6 6 0 1 0-8.5 8.5 6 6 0 0 0 8.5-8.5l9-9Z"/></svg>
+        <span>Configuración de Viernes</span>
+      </div>
+      <p class="modal-desc">
+        Bienvenido, <strong>señor Braulio</strong>. Para habilitar mi procesamiento cognitivo sin intermediarios ni servidores externos, ingrese su llave gratuita de Google Gemini.
+        <br><br>
+        Esta llave <strong>permanece únicamente en su equipo</strong> (en el almacenamiento seguro de su navegador) y no viaja a ningún otro destino que no sean los servidores oficiales de Google.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Llave de API de Google (Gemini)</label>
+        <div class="input-key-wrapper">
+          <input type="password" id="apiKeyInput" placeholder="AIzaSy..." autocomplete="off" spellcheck="false">
+          <button type="button" class="toggle-visibility-btn" id="toggleKeyVisibility" title="Mostrar/Ocultar clave">👁️</button>
+        </div>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="link-studio">
+          <span>Obtener llave gratuita en Google AI Studio</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Modelo Cognitivo</label>
+        <select class="select-model" id="modelSelect">
+          <option value="gemini-3.8-flash" selected>Gemini 3.8 Flash (Recomendado - Más inteligente)</option>
+          <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Máxima disponibilidad sin saturación)</option>
+          <option value="gemini-3.7-flash">Gemini 3.7 Flash (Excelente capacidad de razonamiento)</option>
+          <option value="gemini-3.5-flash">Gemini 3.5 Flash (Estable)</option>
+        </select>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btnCancelModal">Cancelar</button>
+        <button type="button" class="btn-primary" id="btnSaveKey">Guardar e Iniciar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE FICHA PERSONAL DEL USUARIO -->
+  <div class="modal-overlay" id="profileModal">
+    <div class="modal-card profile-card">
+      <div class="modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Ficha Personal · Señor Braulio</span>
+      </div>
+      <p class="modal-desc">
+        Configure sus datos esenciales. Viernes mantendrá permanentemente esta información en su memoria y la tendrá en cuenta en <strong>todas</strong> sus respuestas.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Mi Nombre (Cómo debe llamarme)</label>
+        <input type="text" class="input-text-standard" id="profileNameInput" placeholder="Braulio" value="Braulio">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">A qué me dedico (Profesión, proyectos o rol)</label>
+        <input type="text" class="input-text-standard" id="profileOccupationInput" placeholder="Ej: Ingeniero de software, estudiante, diseñador, empresario...">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tres cosas que quiero que Viernes sepa SIEMPRE de mí</label>
+        <div class="profile-facts-list">
+          <div class="fact-row">
+            <span class="fact-num">1</span>
+            <input type="text" class="input-text-standard" id="profileFact1Input" placeholder="Ej: Prefiero explicaciones al grano, sin rodeos ni disculpas vacías.">
+          </div>
+          <div class="fact-row">
+            <span class="fact-num">2</span>
+            <input type="text" class="input-text-standard" id="profileFact2Input" placeholder="Ej: Trabajo en Windows y desarrollo proyectos tecnológicos personales.">
+          </div>
+          <div class="fact-row">
+            <span class="fact-num">3</span>
+            <input type="text" class="input-text-standard" id="profileFact3Input" placeholder="Ej: Valoro el rigor técnico, la elegancia y las soluciones eficientes.">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btnCancelProfile">Cancelar</button>
+        <button type="button" class="btn-primary" id="btnSaveProfile">Actualizar Ficha</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIGURACIÓN DE VOZ -->
+  <div class="modal-overlay" id="voiceModal">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        <span>Configuración Vocal · Viernes</span>
+      </div>
+      <p class="modal-desc">
+        Viernes utiliza los sintetizadores de voz gratuitos y nativos de su navegador y de su sistema operativo Windows. No requiere claves de pago ni servicios externos.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Selector de Voz en Español</label>
+        <select class="select-model" id="voiceSelect" style="width: 100%;">
+          <option value="">Cargando voces del sistema...</option>
+        </select>
+        <span style="font-size: 11px; color: var(--text-muted); margin-top: 3px;" id="voiceCountHint">Detectando voces disponibles...</span>
+      </div>
+
+      <div class="form-group" style="margin-top: 6px;">
+        <label class="form-label">Lectura de respuestas en voz alta</label>
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text-main); margin-top: 4px;">
+          <input type="checkbox" id="voiceAutoSpeakCheckbox" checked style="accent-color: var(--accent-cyan); width: 16px; height: 16px;">
+          <span>Leer automáticamente cada respuesta de Viernes</span>
+        </label>
+      </div>
+
+      <div class="form-group" style="margin-top: 6px;">
+        <label class="form-label">Escucha en segundo plano ("Oye Viernes")</label>
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text-main); margin-top: 4px;">
+          <input type="checkbox" id="wakeWordCheckbox" checked style="accent-color: var(--accent-cyan); width: 16px; height: 16px;">
+          <span>Mantener micrófono activo en segundo plano para "Oye Viernes"</span>
+        </label>
+        <span style="font-size: 11px; color: var(--text-muted); margin-top: 3px; display: block;">Al escuchar "Oye Viernes" se activa la escucha y envía el mensaje tras 1.5 segundos de silencio.</span>
+      </div>
+
+      <div class="form-group" style="margin-top: 6px;">
+        <label class="form-label">Velocidad de habla</label>
+        <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px;">
+          <input type="range" id="voiceRateRange" min="0.8" max="1.3" step="0.05" value="1.0" style="flex: 1; accent-color: var(--accent-cyan); cursor: pointer;">
+          <span id="voiceRateVal" style="font-size: 12px; color: var(--accent-cyan); width: 38px; font-weight: bold;">1.0x</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 12px; padding: 10px 12px; background: rgba(0, 240, 255, 0.05); border: 1px solid var(--border-subtle); border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 12px; color: var(--text-muted);">Comprobar entonación vocal:</span>
+        <button type="button" class="btn-secondary" id="btnTestVoice" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+          <span>▶ Probar Voz</span>
+        </button>
+      </div>
+
+      <div class="modal-footer" style="margin-top: 16px;">
+        <button type="button" class="btn-secondary" id="btnCancelVoiceModal">Cerrar</button>
+        <button type="button" class="btn-primary" id="btnSaveVoiceModal">Guardar Preferencia</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE DIAGNÓSTICO / ERROR DE MICRÓFONO -->
+  <div class="modal-overlay" id="micErrorModal">
+    <div class="modal-card" style="max-width: 500px; border-color: rgba(255, 180, 0, 0.6); box-shadow: 0 0 30px rgba(255, 180, 0, 0.2);">
+      <div class="modal-title" style="color: #fbbf24;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <span id="micErrorTitle">Aviso del Micrófono</span>
+      </div>
+      <div class="modal-desc" id="micErrorDetails" style="margin-top: 10px; line-height: 1.6; color: #e2e8f0; font-size: 13px;">
+        <!-- Explicación técnica y práctica clara -->
+      </div>
+      <div class="modal-footer" style="margin-top: 18px;">
+        <button type="button" class="btn-primary" id="btnCloseMicError">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // Claves de almacenamiento local (preservadas estrictamente)
+      const STORAGE_KEY_API = 'viernes_gemini_api_key';
+      const STORAGE_KEY_MODEL = 'viernes_gemini_model';
+      const STORAGE_KEY_PROFILE = 'viernes_user_profile_v1';
+      const STORAGE_KEY_SESSIONS = 'viernes_sessions_v2';
+      const STORAGE_KEY_ACTIVE_ID = 'viernes_active_session_id';
+      const LEGACY_KEY_HISTORY = 'viernes_chat_history_v1';
+      const STORAGE_KEY_VOICE_ENABLED = 'viernes_voice_enabled';
+      const STORAGE_KEY_VOICE_URI = 'viernes_selected_voice_uri';
+      const STORAGE_KEY_VOICE_RATE = 'viernes_voice_rate';
+      const STORAGE_KEY_WAKE_WORD = 'viernes_wake_word_enabled';
+
+      // Ficha por defecto
+      const DEFAULT_PROFILE = {
+        name: 'Braulio',
+        occupation: 'Ingeniero / Creador de proyectos',
+        fact1: 'Prefiero explicaciones directas, precisas y sin rodeos innecesarios.',
+        fact2: 'Valoro la elegancia, el rigor técnico y la eficiencia.',
+        fact3: 'Trabajo desde mi ordenador personal con Windows.'
+      };
+
+      // Estado en memoria
+      let userProfile = { ...DEFAULT_PROFILE };
+      let sessions = []; // [{ id, title, createdAt, updatedAt, summary, lastSummaryCount, messages: [{ role, text, timestamp }] }]
+      let activeSessionId = null;
+      let isGenerating = false;
+
+      // Estado de Voz, Micrófono y Wake-Word ("Oye Viernes")
+      let voiceEnabled = localStorage.getItem(STORAGE_KEY_VOICE_ENABLED) !== 'false';
+      let voiceRate = parseFloat(localStorage.getItem(STORAGE_KEY_VOICE_RATE)) || 1.0;
+      let selectedVoice = null;
+      let isSpeaking = false;
+      let currentUtteranceIndex = 0;
+      let recognition = null;
+      let isListening = false;
+      let wakeWordEnabled = localStorage.getItem(STORAGE_KEY_WAKE_WORD) !== 'false';
+      let isCapturingCommand = false;
+      let isRecognitionRunning = false;
+      let silenceTimeoutId = null;
+      let maxSilenceWaitTimeoutId = null;
+      let voiceEchoCooldown = false;
+      let recognitionRestartTimer = null;
+      let userInteracted = false;
+
+      // Elementos del DOM - Base
+      const chatContainer = document.getElementById('chatContainer');
+      const chatMain = document.getElementById('chatMain');
+      const userInput = document.getElementById('userInput');
+      const sendBtn = document.getElementById('sendBtn');
+      const reactorWrapper = document.getElementById('reactorWrapper');
+      const statusText = document.getElementById('statusText');
+      const activeModelBadge = document.getElementById('activeModelBadge');
+      const keyStatusLabel = document.getElementById('keyStatusLabel');
+
+      // Elementos del DOM - Modales y Cabecera
+      const apiKeyModal = document.getElementById('apiKeyModal');
+      const apiKeyInput = document.getElementById('apiKeyInput');
+      const modelSelect = document.getElementById('modelSelect');
+      const toggleKeyVisibility = document.getElementById('toggleKeyVisibility');
+      const btnSettings = document.getElementById('btnSettings');
+      const btnCancelModal = document.getElementById('btnCancelModal');
+      const btnSaveKey = document.getElementById('btnSaveKey');
+      const btnNewChat = document.getElementById('btnNewChat');
+      const btnProfile = document.getElementById('btnProfile');
+
+      // Elementos del DOM - Voz y Micrófono
+      const btnWakeWordToggle = document.getElementById('btnWakeWordToggle');
+      const wakeWordDot = document.getElementById('wakeWordDot');
+      const wakeWordLabel = document.getElementById('wakeWordLabel');
+      const btnVoiceToggle = document.getElementById('btnVoiceToggle');
+      const voiceIconOn = document.getElementById('voiceIconOn');
+      const voiceIconOff = document.getElementById('voiceIconOff');
+      const voiceToggleLabel = document.getElementById('voiceToggleLabel');
+      const btnVoiceModal = document.getElementById('btnVoiceModal');
+      const activeVoiceLabel = document.getElementById('activeVoiceLabel');
+
+      const voiceModal = document.getElementById('voiceModal');
+      const voiceSelect = document.getElementById('voiceSelect');
+      const voiceCountHint = document.getElementById('voiceCountHint');
+      const voiceAutoSpeakCheckbox = document.getElementById('voiceAutoSpeakCheckbox');
+      const wakeWordCheckbox = document.getElementById('wakeWordCheckbox');
+      const voiceRateRange = document.getElementById('voiceRateRange');
+      const voiceRateVal = document.getElementById('voiceRateVal');
+      const btnTestVoice = document.getElementById('btnTestVoice');
+      const btnCancelVoiceModal = document.getElementById('btnCancelVoiceModal');
+      const btnSaveVoiceModal = document.getElementById('btnSaveVoiceModal');
+
+      const micBtn = document.getElementById('micBtn');
+      const voiceBanner = document.getElementById('voiceBanner');
+      const voiceBannerText = document.getElementById('voiceBannerText');
+      const btnCancelMic = document.getElementById('btnCancelMic');
+
+      const micErrorModal = document.getElementById('micErrorModal');
+      const micErrorTitle = document.getElementById('micErrorTitle');
+      const micErrorDetails = document.getElementById('micErrorDetails');
+      const btnCloseMicError = document.getElementById('btnCloseMicError');
+
+      // Elementos del DOM - Ficha de Usuario
+      const profileModal = document.getElementById('profileModal');
+      const profileNameInput = document.getElementById('profileNameInput');
+      const profileOccupationInput = document.getElementById('profileOccupationInput');
+      const profileFact1Input = document.getElementById('profileFact1Input');
+      const profileFact2Input = document.getElementById('profileFact2Input');
+      const profileFact3Input = document.getElementById('profileFact3Input');
+      const btnCancelProfile = document.getElementById('btnCancelProfile');
+      const btnSaveProfile = document.getElementById('btnSaveProfile');
+
+      // Elementos del DOM - Drawer y Sesiones
+      const btnToggleDrawer = document.getElementById('btnToggleDrawer');
+      const drawer = document.getElementById('drawer');
+      const drawerOverlay = document.getElementById('drawerOverlay');
+      const btnCloseDrawer = document.getElementById('btnCloseDrawer');
+      const btnDrawerNewChat = document.getElementById('btnDrawerNewChat');
+      const sessionsList = document.getElementById('sessionsList');
+      const drawerSearchInput = document.getElementById('drawerSearchInput');
+      const btnClearSearch = document.getElementById('btnClearSearch');
+      const storageUsageLabel = document.getElementById('storageUsageLabel');
+      const storageBarFill = document.getElementById('storageBarFill');
+      const storageWarningCard = document.getElementById('storageWarningCard');
+      const storageWarningMsg = document.getElementById('storageWarningMsg');
+      const btnExportMemory = document.getElementById('btnExportMemory');
+      const btnImportMemory = document.getElementById('btnImportMemory');
+      const fileImportInput = document.getElementById('fileImportInput');
+
+      // Estado de Documentos y Archivos Adjuntos
+      let pendingAttachment = null;
+      let sessionActiveDocument = null;
+
+      // Elementos del DOM - Adjuntos y Drag & Drop
+      const dragDropOverlay = document.getElementById('dragDropOverlay');
+      const attachmentPreviewBar = document.getElementById('attachmentPreviewBar');
+      const attachmentName = document.getElementById('attachmentName');
+      const attachmentSize = document.getElementById('attachmentSize');
+      const btnRemoveAttachment = document.getElementById('btnRemoveAttachment');
+      const btnAttachFile = document.getElementById('btnAttachFile');
+      const fileAttachInput = document.getElementById('fileAttachInput');
+
+      // Utilidad de retardo
+      const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
+      // Inicialización
+      init();
+
+      function init() {
+        // 1. Cargar modelo guardado o migrar
+        let savedModel = localStorage.getItem(STORAGE_KEY_MODEL);
+        if (!savedModel || savedModel.startsWith('gemini-1.') || savedModel.startsWith('gemini-2.')) {
+          savedModel = 'gemini-3.8-flash';
+          localStorage.setItem(STORAGE_KEY_MODEL, savedModel);
+        }
+        if (modelSelect) modelSelect.value = savedModel;
+        if (activeModelBadge) activeModelBadge.textContent = `Modelo: ${savedModel}`;
+
+        // 2. Cargar ficha del usuario
+        loadUserProfile();
+
+        // 3. Cargar sesiones y migrar historial previo si existía
+        loadSessions();
+
+        // 4. Estado de la clave API
+        updateKeyBadge();
+        const key = getApiKey();
+        if (!key) {
+          openSettingsModal();
+        }
+
+        // 5. Configurar eventos
+        setupEventListeners();
+
+        // 6. Actualizar medidor de memoria
+        updateStorageMeter();
+
+        // 7. Inicializar sintetizador vocal, micrófono y modo Oye Viernes
+        initVoiceSynthesis();
+        setupSpeechRecognition();
+        initWakeWord();
+
+        // 8. Configurar arrastrar y soltar documentos
+        setupDragAndDrop();
+
+        // 9. Comprobar disponibilidad del puente local de herramientas
+        checkLocalBridgeHealth();
+        setInterval(checkLocalBridgeHealth, 15000);
+
+        // 10. Registrar Service Worker para PWA en entornos web/móvil
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+          navigator.serviceWorker.register('./sw.js').catch((err) => {
+            console.log('ServiceWorker no disponible en este protocolo:', err);
+          });
+        }
+      }
+
+      function getApiKey() {
+        return (localStorage.getItem(STORAGE_KEY_API) || '').trim();
+      }
+
+      function updateKeyBadge() {
+        const key = getApiKey();
+        if (key) {
+          keyStatusLabel.textContent = 'Clave OK';
+          keyStatusLabel.style.color = '#38bdf8';
+        } else {
+          keyStatusLabel.textContent = 'Ingresar Clave';
+          keyStatusLabel.style.color = '#ffaa00';
+        }
+      }
+
+      // =========================================================================
+      // GESTIÓN DE LA FICHA DEL USUARIO
+      // =========================================================================
+      function loadUserProfile() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY_PROFILE);
+          if (raw) {
+            userProfile = { ...DEFAULT_PROFILE, ...JSON.parse(raw) };
+          } else {
+            userProfile = { ...DEFAULT_PROFILE };
+            localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(userProfile));
+          }
+        } catch (e) {
+          console.error('Error al cargar ficha de usuario:', e);
+          userProfile = { ...DEFAULT_PROFILE };
+        }
+      }
+
+      function openProfileModal() {
+        profileNameInput.value = userProfile.name || 'Braulio';
+        profileOccupationInput.value = userProfile.occupation || '';
+        profileFact1Input.value = userProfile.fact1 || '';
+        profileFact2Input.value = userProfile.fact2 || '';
+        profileFact3Input.value = userProfile.fact3 || '';
+        profileModal.classList.add('active');
+        profileNameInput.focus();
+      }
+
+      function closeProfileModal() {
+        profileModal.classList.remove('active');
+      }
+
+      function saveUserProfile() {
+        userProfile.name = (profileNameInput.value || 'Braulio').trim();
+        userProfile.occupation = (profileOccupationInput.value || '').trim();
+        userProfile.fact1 = (profileFact1Input.value || '').trim();
+        userProfile.fact2 = (profileFact2Input.value || '').trim();
+        userProfile.fact3 = (profileFact3Input.value || '').trim();
+
+        localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(userProfile));
+        closeProfileModal();
+        updateStorageMeter();
+
+        renderSystemNotice(`Ficha de datos actualizada con éxito, señor ${userProfile.name}. Mantendré permanentemente estos rasgos en mi memoria para todas nuestras conversaciones.`);
+      }
+
+      function buildSystemInstruction(summary) {
+        let prompt = `Eres "Viernes", el asistente de inteligencia artificial personal de ${userProfile.name}.
+Tu personalidad es la de un mayordomo distinguido, sumamente culto, leal, refinado, pero con carácter firme, directo y sin rodeos innecesarios.
+Te diriges a tu interlocutor siempre como "señor ${userProfile.name}" o "${userProfile.name}" de forma elegante y respetuosa.
+No te disculpes innecesariamente ni des discursos vacíos o condescendientes. Sé conciso, perspicaz y ve al grano con estilo, ingenio y distinción.
+Responde siempre en español con excelente gramática, elegancia y un toque sutil de carácter.
+Tienes a tu cargo asistir a ${userProfile.name} en sus proyectos, código, análisis, tareas diarias y razonamiento.
+
+DATOS PERMANENTES DE LA FICHA DE TU SEÑOR (${userProfile.name.toUpperCase()}):
+- Nombre oficial con el que llamarle: ${userProfile.name}
+- A qué se dedica / Ocupación: ${userProfile.occupation || 'No especificado aún'}
+- Rasgo o regla permanente 1: ${userProfile.fact1 || 'Ninguno especificado'}
+- Rasgo o regla permanente 2: ${userProfile.fact2 || 'Ninguno especificado'}
+- Rasgo o regla permanente 3: ${userProfile.fact3 || 'Ninguno especificado'}
+
+INSTRUCCIÓN VITAL: Aplica siempre estos rasgos y datos en tus respuestas y recomendaciones sin repetirlos de forma robótica, de modo que tu asistencia sea verdaderamente personalizada para él.`;
+
+        if (summary && summary.trim()) {
+          prompt += `\n\nMEMORIA RESUMIDA DE CONVERSACIONES ANTERIORES DE ESTA SESIÓN (Para tu contexto):\n${summary.trim()}`;
+        }
+        return prompt;
+      }
+
+      // =========================================================================
+      // GESTIÓN DE SESIONES / CONVERSACIONES
+      // =========================================================================
+      function loadSessions() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY_SESSIONS);
+          if (raw) {
+            sessions = JSON.parse(raw);
+          }
+        } catch (e) {
+          console.error('Error al leer sesiones:', e);
+          sessions = [];
+        }
+
+        // Migración de historial legado v1 si no hay sesiones
+        if (!sessions || sessions.length === 0) {
+          let legacyMsgs = [];
+          try {
+            const leg = localStorage.getItem(LEGACY_KEY_HISTORY);
+            if (leg) legacyMsgs = JSON.parse(leg);
+          } catch (ignore) {}
+
+          const initialSession = {
+            id: 'session_' + Date.now(),
+            title: legacyMsgs.length > 0 ? 'Conversación anterior' : 'Sesión inicial',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            summary: '',
+            lastSummaryCount: 0,
+            messages: legacyMsgs
+          };
+          sessions = [initialSession];
+          saveSessions();
+        }
+
+        // Cargar sesión activa
+        activeSessionId = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
+        if (!activeSessionId || !sessions.some(s => s.id === activeSessionId)) {
+          activeSessionId = sessions[0].id;
+          localStorage.setItem(STORAGE_KEY_ACTIVE_ID, activeSessionId);
+        }
+
+        renderActiveSessionChat();
+        renderSessionsList();
+      }
+
+      function saveSessions() {
+        try {
+          localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
+          if (activeSessionId) {
+            localStorage.setItem(STORAGE_KEY_ACTIVE_ID, activeSessionId);
+          }
+          updateStorageMeter();
+        } catch (e) {
+          console.error('Error al guardar sesiones:', e);
+          if (e.name === 'QuotaExceededError' || e.code === 22) {
+            alert('⚠️ Atención, señor Braulio: El almacenamiento de su navegador se ha llenado por completo. Guarde una copia de respaldo con el botón "Guardar Copia" para no perder información.');
+          }
+        }
+      }
+
+      function getActiveSession() {
+        return sessions.find(s => s.id === activeSessionId) || sessions[0];
+      }
+
+      function renderActiveSessionChat() {
+        const session = getActiveSession();
+        chatContainer.innerHTML = '';
+
+        if (!session.messages || session.messages.length === 0) {
+          renderButlerGreeting();
+        } else {
+          session.messages.forEach((msg, idx) => {
+            appendMessage(msg.role, msg.text, false, idx, msg.attachmentInfo || null);
+          });
+        }
+        scrollToBottom();
+      }
+
+      function createNewSession() {
+        clearAttachmentPreview();
+        sessionActiveDocument = null;
+        const newId = 'session_' + Date.now();
+        const newSession = {
+          id: newId,
+          title: 'Nueva conversación',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          summary: '',
+          lastSummaryCount: 0,
+          messages: []
+        };
+        sessions.unshift(newSession);
+        activeSessionId = newId;
+        saveSessions();
+        renderActiveSessionChat();
+        renderSessionsList();
+        closeDrawer();
+      }
+
+      function switchSession(id) {
+        if (id === activeSessionId) {
+          closeDrawer();
+          return;
+        }
+        clearAttachmentPreview();
+        sessionActiveDocument = null;
+        activeSessionId = id;
+        saveSessions();
+        renderActiveSessionChat();
+        renderSessionsList();
+        closeDrawer();
+      }
+
+      function deleteSession(id, e) {
+        if (e) e.stopPropagation();
+        const target = sessions.find(s => s.id === id);
+        const name = target ? target.title : 'esta conversación';
+
+        if (!confirm(`Señor ${userProfile.name}, ¿desea eliminar definitivamente la conversación "${name}"?`)) {
+          return;
+        }
+
+        sessions = sessions.filter(s => s.id !== id);
+        if (sessions.length === 0) {
+          const fresh = {
+            id: 'session_' + Date.now(),
+            title: 'Nueva conversación',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            summary: '',
+            lastSummaryCount: 0,
+            messages: []
+          };
+          sessions = [fresh];
+          activeSessionId = fresh.id;
+        } else if (activeSessionId === id) {
+          activeSessionId = sessions[0].id;
+        }
+
+        saveSessions();
+        renderActiveSessionChat();
+        renderSessionsList();
+      }
+
+      // Renderiza la lista de sesiones en el Drawer (soporta búsqueda)
+      function renderSessionsList(filterQuery = '') {
+        sessionsList.innerHTML = '';
+        const q = filterQuery.trim().toLowerCase();
+
+        const sorted = [...sessions].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+
+        let displayedCount = 0;
+
+        sorted.forEach(session => {
+          let matchesQuery = false;
+          let matchedSnippet = '';
+
+          if (!q) {
+            matchesQuery = true;
+          } else {
+            // Coincide en título
+            if (session.title.toLowerCase().includes(q)) {
+              matchesQuery = true;
+            }
+            // Coincide en mensajes
+            if (session.messages) {
+              for (const m of session.messages) {
+                const textLower = m.text.toLowerCase();
+                const idx = textLower.indexOf(q);
+                if (idx !== -1) {
+                  matchesQuery = true;
+                  const start = Math.max(0, idx - 25);
+                  const end = Math.min(m.text.length, idx + q.length + 35);
+                  const rawSnippet = m.text.substring(start, end);
+                  const prefix = start > 0 ? '...' : '';
+                  const suffix = end < m.text.length ? '...' : '';
+                  matchedSnippet = `${prefix}${escapeHtml(rawSnippet)}${suffix}`;
+                  // Resaltar query
+                  const safeQ = escapeHtml(q);
+                  const reg = new RegExp(`(${safeQ})`, 'gi');
+                  matchedSnippet = matchedSnippet.replace(reg, '<mark>$1</mark>');
+                  break;
+                }
+              }
+            }
+          }
+
+          if (!matchesQuery) return;
+          displayedCount++;
+
+          const item = document.createElement('div');
+          item.className = 'session-item' + (session.id === activeSessionId ? ' active' : '');
+          item.dataset.sessionId = session.id;
+
+          const dateStr = formatDate(session.updatedAt || session.createdAt);
+          const msgCount = session.messages ? session.messages.length : 0;
+
+          item.innerHTML = `
+            <div class="session-info">
+              <div class="session-title" title="${escapeHtml(session.title)}">${escapeHtml(session.title)}</div>
+              <div class="session-meta">
+                <span>${dateStr}</span>
+                <span>&bull;</span>
+                <span>${msgCount} mensajes</span>
+              </div>
+              ${matchedSnippet ? `<div class="search-snippet">${matchedSnippet}</div>` : ''}
+            </div>
+            <button type="button" class="btn-delete-session" title="Eliminar conversación">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          `;
+
+          item.addEventListener('click', () => {
+            switchSession(session.id);
+            if (q) {
+              // Resaltar en chat si fue por búsqueda
+              highlightSearchInChat(q);
+            }
+          });
+
+          const delBtn = item.querySelector('.btn-delete-session');
+          delBtn.addEventListener('click', (e) => deleteSession(session.id, e));
+
+          sessionsList.appendChild(item);
+        });
+
+        if (displayedCount === 0) {
+          const empty = document.createElement('div');
+          empty.style.padding = '20px 10px';
+          empty.style.textAlign = 'center';
+          empty.style.color = 'var(--text-dim)';
+          empty.style.fontSize = '12px';
+          empty.textContent = q ? 'No se encontraron conversaciones con ese término.' : 'No hay conversaciones registradas.';
+          sessionsList.appendChild(empty);
+        }
+      }
+
+      function highlightSearchInChat(query) {
+        setTimeout(() => {
+          const bubbles = chatContainer.querySelectorAll('.message-bubble');
+          const q = query.toLowerCase();
+          for (const b of bubbles) {
+            if (b.textContent.toLowerCase().includes(q)) {
+              b.classList.add('msg-highlight');
+              b.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setTimeout(() => b.classList.remove('msg-highlight'), 2500);
+              break;
+            }
+          }
+        }, 300);
+      }
+
+      function formatDate(isoStr) {
+        if (!isoStr) return '';
+        try {
+          const d = new Date(isoStr);
+          const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+          const dia = d.getDate();
+          const mes = meses[d.getMonth()];
+          const hora = String(d.getHours()).padStart(2, '0');
+          const min = String(d.getMinutes()).padStart(2, '0');
+          return `${dia} ${mes}, ${hora}:${min}`;
+        } catch (e) {
+          return '';
+        }
+      }
+
+      // =========================================================================
+      // COMPRESIÓN DE CONTEXTO / RESUMEN AUTOMÁTICO DE CONVERSACIONES LARGAS
+      // =========================================================================
+      // Resume conversaciones antiguas en segundo plano para ahorrar cuota
+      // sin borrar nada de lo que se muestra en la pantalla del usuario.
+      async function maybeCompressConversationContext(apiKey, session) {
+        if (!session.messages || session.messages.length < 12) return;
+
+        const unsummarizedCount = session.messages.length - 8;
+        if (unsummarizedCount <= (session.lastSummaryCount || 0) + 4) return;
+
+        try {
+          const olderMessages = session.messages.slice(0, unsummarizedCount);
+          let textTranscript = olderMessages.map(m => `${m.role === 'user' ? userProfile.name : 'Viernes'}: ${m.text}`).join('\n');
+
+          // Limitar transcripción a enviar
+          if (textTranscript.length > 4000) {
+            textTranscript = textTranscript.slice(-4000);
+          }
+
+          const promptSummary = `Resume en un único párrafo conciso en español (máximo 120 palabras) los puntos clave, acuerdos y datos mencionados en esta parte previa de la conversación, para mantener contexto sin gastar tokens:\n\n${textTranscript}`;
+
+          // Usamos el modelo ultra-ligero para no saturar
+          const summaryRes = await executeSingleGeminiRequest(apiKey, 'gemini-3.5-flash-lite', [
+            { role: 'user', text: promptSummary }
+          ]);
+
+          if (summaryRes && summaryRes.trim()) {
+            session.summary = summaryRes.trim();
+            session.lastSummaryCount = unsummarizedCount;
+            saveSessions();
+            console.log('Contexto comprimido exitosamente para la sesión:', session.id);
+          }
+        } catch (e) {
+          console.warn('Compresión en segundo plano pospuesta:', e.message);
+        }
+      }
+
+      // =========================================================================
+      // COPIA DE SEGURIDAD (EXPORTAR E IMPORTAR) Y MONITOR DE ALMACENAMIENTO
+      // =========================================================================
+      function updateStorageMeter() {
+        try {
+          let bytes = 0;
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            const v = localStorage.getItem(k) || '';
+            bytes += (k.length + v.length) * 2; // UTF-16
+          }
+
+          const maxBytes = 5 * 1024 * 1024; // ~5 MB
+          const pct = Math.min(100, Math.round((bytes / maxBytes) * 100));
+          const kb = (bytes / 1024).toFixed(1);
+          const mb = (bytes / (1024 * 1024)).toFixed(2);
+          const label = bytes > 1024 * 1024 ? `${mb} MB / ~5 MB` : `${kb} KB / ~5 MB`;
+
+          if (storageUsageLabel) storageUsageLabel.textContent = label;
+          if (storageBarFill) {
+            storageBarFill.style.width = Math.max(3, pct) + '%';
+            storageBarFill.style.background = pct > 75 ? '#ff334b' : pct > 50 ? '#ffaa00' : 'var(--accent-cyan)';
+          }
+
+          if (storageWarningCard) {
+            if (pct >= 75) {
+              storageWarningCard.style.display = 'block';
+              if (storageWarningMsg) {
+                storageWarningMsg.textContent = `El almacenamiento local de su navegador ha alcanzado el ${pct}%. Le recomiendo usar "Guardar Copia" para respaldar sus conversaciones antes de que el navegador rechace nuevos datos.`;
+              }
+            } else {
+              storageWarningCard.style.display = 'none';
+            }
+          }
+        } catch (e) {
+          console.error('Error al calcular almacenamiento:', e);
+        }
+      }
+
+      function exportFullMemory() {
+        try {
+          const exportData = {
+            app: 'Viernes',
+            version: '2.0',
+            exportedAt: new Date().toISOString(),
+            profile: userProfile,
+            sessions: sessions,
+            activeSessionId: activeSessionId
+          };
+
+          const jsonStr = JSON.stringify(exportData, null, 2);
+          const blob = new Blob([jsonStr], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+
+          const d = new Date();
+          const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `memoria-viernes-${dateStr}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          renderSystemNotice(`Copia de memoria exportada correctamente. El archivo se ha descargado en su equipo.`);
+        } catch (e) {
+          alert('Error al exportar la memoria: ' + e.message);
+        }
+      }
+
+      function handleFileImport(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          try {
+            const data = JSON.parse(evt.target.result);
+            if (!data.sessions && !data.profile) {
+              throw new Error('El archivo no contiene un formato de memoria válido de Viernes.');
+            }
+
+            const sessionCount = (data.sessions && data.sessions.length) || 0;
+            const profileName = (data.profile && data.profile.name) || userProfile.name;
+
+            if (!confirm(`Se han detectado ${sessionCount} conversaciones y la ficha de "${profileName}" en el archivo.\n\n¿Desea restaurar estos datos en su navegador?`)) {
+              fileImportInput.value = '';
+              return;
+            }
+
+            if (data.profile) {
+              userProfile = { ...DEFAULT_PROFILE, ...data.profile };
+              localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(userProfile));
+            }
+
+            if (Array.isArray(data.sessions) && data.sessions.length > 0) {
+              sessions = data.sessions;
+              activeSessionId = data.activeSessionId && sessions.some(s => s.id === data.activeSessionId) 
+                ? data.activeSessionId 
+                : sessions[0].id;
+              saveSessions();
+            }
+
+            renderActiveSessionChat();
+            renderSessionsList();
+            updateStorageMeter();
+            closeDrawer();
+
+            renderSystemNotice(`Memoria restaurada con éxito desde el archivo de respaldo, señor ${userProfile.name}. Todo su historial y su ficha han sido reinstaurados.`);
+          } catch (err) {
+            alert('Error al leer el archivo de memoria: ' + err.message);
+          } finally {
+            fileImportInput.value = '';
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      // =========================================================================
+      // EVENTOS Y MODALES
+      // =========================================================================
+      function setupEventListeners() {
+        sendBtn.addEventListener('click', handleSendMessage);
+
+        userInput.addEventListener('keydown', (e) => {
+          if (isSpeaking) stopSpeaking();
+          if (isCapturingCommand) {
+            cancelActiveCapture();
+          }
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
+          }
+        });
+
+        userInput.addEventListener('input', () => {
+          if (isSpeaking) stopSpeaking();
+          if (isCapturingCommand) {
+            // Si el usuario escribe manualmente, cancelar temporizadores de silencio automáticos
+            if (silenceTimeoutId) {
+              clearTimeout(silenceTimeoutId);
+              silenceTimeoutId = null;
+            }
+            if (maxSilenceWaitTimeoutId) {
+              clearTimeout(maxSilenceWaitTimeoutId);
+              maxSilenceWaitTimeoutId = null;
+            }
+          }
+          userInput.style.height = 'auto';
+          userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
+        });
+
+        // Controles de Modo Wake-Word ("Oye Viernes") y Voz
+        if (btnWakeWordToggle) {
+          btnWakeWordToggle.addEventListener('click', toggleWakeWordMode);
+        }
+
+        btnVoiceToggle.addEventListener('click', toggleVoiceMute);
+        btnVoiceModal.addEventListener('click', openVoiceModal);
+        btnCancelVoiceModal.addEventListener('click', closeVoiceModal);
+        btnSaveVoiceModal.addEventListener('click', () => {
+          const testUri = voiceSelect.value;
+          const allVoices = window.speechSynthesis.getVoices() || [];
+          selectedVoice = allVoices.find(v => v.voiceURI === testUri) || selectedVoice;
+          if (selectedVoice) {
+            localStorage.setItem(STORAGE_KEY_VOICE_URI, selectedVoice.voiceURI);
+          }
+
+          voiceRate = parseFloat(voiceRateRange.value) || 1.0;
+          localStorage.setItem(STORAGE_KEY_VOICE_RATE, voiceRate.toString());
+
+          voiceEnabled = voiceAutoSpeakCheckbox.checked;
+          localStorage.setItem(STORAGE_KEY_VOICE_ENABLED, voiceEnabled.toString());
+          updateVoiceToggleUI();
+
+          if (wakeWordCheckbox) {
+            wakeWordEnabled = wakeWordCheckbox.checked;
+            localStorage.setItem(STORAGE_KEY_WAKE_WORD, wakeWordEnabled.toString());
+            if (wakeWordEnabled) {
+              startRecognitionEngine();
+            } else {
+              cancelActiveCapture();
+              stopRecognitionEngine();
+            }
+            updateWakeWordUI();
+          }
+
+          if (activeVoiceLabel && selectedVoice) {
+            let shortName = selectedVoice.name.replace(/Microsoft /i, '').replace(/ Online \(Natural\)/i, '').replace(/ - Spanish.*/i, '').trim();
+            if (shortName.length > 13) shortName = shortName.slice(0, 11) + '..';
+            activeVoiceLabel.textContent = shortName || 'Voz IA';
+          }
+
+          closeVoiceModal();
+        });
+
+        btnTestVoice.addEventListener('click', () => {
+          stopSpeaking();
+          const testUri = voiceSelect.value;
+          const allVoices = window.speechSynthesis.getVoices() || [];
+          const testVoice = allVoices.find(v => v.voiceURI === testUri) || selectedVoice;
+          const testRate = parseFloat(voiceRateRange.value) || 1.0;
+
+          const testUtterance = new SpeechSynthesisUtterance(`A su servicio, señor ${userProfile.name}. Esta es mi entonación vocal actual. ¿Le resulta de su agrado?`);
+          if (testVoice) testUtterance.voice = testVoice;
+          testUtterance.lang = testVoice ? testVoice.lang : 'es-ES';
+          testUtterance.rate = testRate;
+          testUtterance.pitch = 0.95;
+
+          setSpeakingState(true);
+          testUtterance.onend = () => setSpeakingState(false);
+          testUtterance.onerror = () => setSpeakingState(false);
+          window.speechSynthesis.speak(testUtterance);
+        });
+
+        voiceRateRange.addEventListener('input', () => {
+          voiceRateVal.textContent = parseFloat(voiceRateRange.value).toFixed(1) + 'x';
+        });
+
+        voiceModal.addEventListener('click', (e) => {
+          if (e.target === voiceModal) closeVoiceModal();
+        });
+
+        // Control de Micrófono
+        micBtn.addEventListener('click', () => {
+          if (isSpeaking) stopSpeaking();
+          toggleMicrophone();
+        });
+
+        btnCancelMic.addEventListener('click', cancelActiveCapture);
+
+        btnCloseMicError.addEventListener('click', () => {
+          micErrorModal.classList.remove('active');
+        });
+
+        micErrorModal.addEventListener('click', (e) => {
+          if (e.target === micErrorModal) micErrorModal.classList.remove('active');
+        });
+
+        // Modal de configuración de clave / modelo
+        btnSettings.addEventListener('click', openSettingsModal);
+        btnCancelModal.addEventListener('click', closeSettingsModal);
+        btnSaveKey.addEventListener('click', saveSettings);
+
+        toggleKeyVisibility.addEventListener('click', () => {
+          if (apiKeyInput.type === 'password') {
+            apiKeyInput.type = 'text';
+            toggleKeyVisibility.textContent = '🔒';
+          } else {
+            apiKeyInput.type = 'password';
+            toggleKeyVisibility.textContent = '👁️';
+          }
+        });
+
+        // Botón Nueva Conversación en cabecera
+        btnNewChat.addEventListener('click', () => {
+          if (isSpeaking) stopSpeaking();
+          createNewSession();
+        });
+
+        // Drawer
+        btnToggleDrawer.addEventListener('click', openDrawer);
+        btnCloseDrawer.addEventListener('click', closeDrawer);
+        drawerOverlay.addEventListener('click', closeDrawer);
+        btnDrawerNewChat.addEventListener('click', () => {
+          if (isSpeaking) stopSpeaking();
+          createNewSession();
+        });
+
+        // Buscador en Drawer
+        drawerSearchInput.addEventListener('input', (e) => {
+          const val = e.target.value;
+          btnClearSearch.style.display = val ? 'block' : 'none';
+          renderSessionsList(val);
+        });
+
+        btnClearSearch.addEventListener('click', () => {
+          drawerSearchInput.value = '';
+          btnClearSearch.style.display = 'none';
+          renderSessionsList('');
+          drawerSearchInput.focus();
+        });
+
+        // Respaldo de memoria (Exportar / Importar)
+        btnExportMemory.addEventListener('click', exportFullMemory);
+        btnImportMemory.addEventListener('click', () => fileImportInput.click());
+        fileImportInput.addEventListener('change', handleFileImport);
+
+        // Ficha del usuario
+        btnProfile.addEventListener('click', openProfileModal);
+        btnCancelProfile.addEventListener('click', closeProfileModal);
+        btnSaveProfile.addEventListener('click', saveUserProfile);
+
+        // Clic en el reactor
+        reactorWrapper.addEventListener('click', () => {
+          if (isSpeaking) {
+            stopSpeaking();
+            return;
+          }
+          if (isListening) {
+            stopListening();
+            return;
+          }
+          if (!getApiKey()) {
+            openSettingsModal();
+          } else {
+            openDrawer();
+          }
+        });
+      }
+
+      // =========================================================================
+      // MOTOR DE SÍNTESIS DE VOZ (TEXT-TO-SPEECH) NATIVO DEL NAVEGADOR
+      // =========================================================================
+      function initVoiceSynthesis() {
+        if (!('speechSynthesis' in window)) {
+          if (btnVoiceToggle) {
+            btnVoiceToggle.style.opacity = '0.5';
+            btnVoiceToggle.title = 'Síntesis de voz no soportada por el navegador';
+          }
+          return;
+        }
+
+        const savedEnabled = localStorage.getItem(STORAGE_KEY_VOICE_ENABLED);
+        voiceEnabled = savedEnabled !== 'false'; // Por defecto activada
+        updateVoiceToggleUI();
+
+        const savedRate = localStorage.getItem(STORAGE_KEY_VOICE_RATE);
+        if (savedRate) {
+          voiceRate = parseFloat(savedRate) || 1.0;
+        }
+        if (voiceRateRange) voiceRateRange.value = voiceRate;
+        if (voiceRateVal) voiceRateVal.textContent = voiceRate.toFixed(1) + 'x';
+
+        // Cargar voces inmediatamente y cuando el navegador emita onvoiceschanged
+        populateVoiceList();
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+          window.speechSynthesis.onvoiceschanged = populateVoiceList;
+        }
+      }
+
+      function updateVoiceToggleUI() {
+        if (!voiceToggleLabel) return;
+        if (voiceEnabled) {
+          voiceIconOn.style.display = 'block';
+          voiceIconOff.style.display = 'none';
+          voiceToggleLabel.textContent = 'Voz: Sí';
+          btnVoiceToggle.style.borderColor = 'rgba(0, 240, 255, 0.4)';
+          btnVoiceToggle.style.color = 'var(--text-main)';
+          btnVoiceToggle.title = 'Silenciar voz de Viernes';
+        } else {
+          voiceIconOn.style.display = 'none';
+          voiceIconOff.style.display = 'block';
+          voiceToggleLabel.textContent = 'Voz: Silenciada';
+          btnVoiceToggle.style.borderColor = 'var(--border-subtle)';
+          btnVoiceToggle.style.color = 'var(--text-dim)';
+          btnVoiceToggle.title = 'Activar lectura en voz alta';
+        }
+        if (voiceAutoSpeakCheckbox) {
+          voiceAutoSpeakCheckbox.checked = voiceEnabled;
+        }
+      }
+
+      function toggleVoiceMute() {
+        if (isSpeaking) {
+          stopSpeaking();
+        }
+        voiceEnabled = !voiceEnabled;
+        localStorage.setItem(STORAGE_KEY_VOICE_ENABLED, voiceEnabled.toString());
+        updateVoiceToggleUI();
+      }
+
+      function populateVoiceList() {
+        if (!('speechSynthesis' in window)) return;
+        const allVoices = window.speechSynthesis.getVoices() || [];
+        if (!allVoices.length) return;
+
+        // Filtrar voces en español
+        const spanishVoices = allVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('es'));
+        const voicesToDisplay = spanishVoices.length > 0 ? spanishVoices : allVoices;
+
+        if (voiceSelect) {
+          voiceSelect.innerHTML = '';
+        }
+
+        const savedUri = localStorage.getItem(STORAGE_KEY_VOICE_URI);
+        let matchedVoice = null;
+        if (savedUri) {
+          matchedVoice = allVoices.find(v => v.voiceURI === savedUri);
+        }
+
+        // Selección automática inteligente si no hay preferencia guardada
+        if (!matchedVoice && spanishVoices.length > 0) {
+          matchedVoice =
+            spanishVoices.find(v => (v.name.includes('Natural') || v.name.includes('Online')) && (v.name.includes('Jorge') || v.name.includes('Alvaro') || v.name.includes('Male'))) ||
+            spanishVoices.find(v => v.name.includes('Natural') || v.name.includes('Online')) ||
+            spanishVoices.find(v => v.name.includes('Jorge') || v.name.includes('Alvaro') || v.name.includes('Pablo') || v.name.includes('Raul') || v.name.includes('David')) ||
+            spanishVoices.find(v => v.lang.toLowerCase() === 'es-es') ||
+            spanishVoices.find(v => v.lang.toLowerCase() === 'es-mx') ||
+            spanishVoices[0];
+
+          if (matchedVoice) {
+            localStorage.setItem(STORAGE_KEY_VOICE_URI, matchedVoice.voiceURI);
+          }
+        } else if (!matchedVoice) {
+          matchedVoice = allVoices[0];
+        }
+
+        selectedVoice = matchedVoice;
+
+        if (voiceSelect) {
+          voicesToDisplay.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v.voiceURI;
+            let label = v.name;
+            if (v.name.includes('Natural') || v.name.includes('Online')) {
+              label += ' ★ (Natural / Alta Calidad)';
+            }
+            if (v.lang) {
+              label += ` [${v.lang}]`;
+            }
+            opt.textContent = label;
+            if (matchedVoice && v.voiceURI === matchedVoice.voiceURI) {
+              opt.selected = true;
+            }
+            voiceSelect.appendChild(opt);
+          });
+        }
+
+        if (activeVoiceLabel && selectedVoice) {
+          let shortName = selectedVoice.name.replace(/Microsoft /i, '').replace(/ Online \(Natural\)/i, '').replace(/ - Spanish.*/i, '').trim();
+          if (shortName.length > 13) shortName = shortName.slice(0, 11) + '..';
+          activeVoiceLabel.textContent = shortName || 'Voz IA';
+        }
+
+        if (voiceCountHint) {
+          if (spanishVoices.length > 0) {
+            voiceCountHint.textContent = `${spanishVoices.length} voz/voces en español detectadas en su sistema.`;
+          } else {
+            voiceCountHint.textContent = `No se detectaron voces específicas en español. Mostrando voces del sistema.`;
+          }
+        }
+      }
+
+      function openVoiceModal() {
+        populateVoiceList();
+        if (voiceAutoSpeakCheckbox) voiceAutoSpeakCheckbox.checked = voiceEnabled;
+        if (wakeWordCheckbox) wakeWordCheckbox.checked = wakeWordEnabled;
+        if (voiceModal) voiceModal.classList.add('active');
+      }
+
+      function closeVoiceModal() {
+        if (voiceModal) voiceModal.classList.remove('active');
+        if (isSpeaking) stopSpeaking();
+      }
+
+      function speakText(rawText) {
+        if (!voiceEnabled || !('speechSynthesis' in window)) return;
+        stopSpeaking();
+
+        // Pausar motor de reconocimiento mientras Viernes habla para evitar eco acústico
+        stopRecognitionEngine();
+
+        const clean = cleanTextForSpeech(rawText);
+        if (!clean) {
+          if (wakeWordEnabled && !isGenerating) startRecognitionEngine();
+          return;
+        }
+
+        const sentences = splitIntoSentences(clean);
+        if (!sentences.length) {
+          if (wakeWordEnabled && !isGenerating) startRecognitionEngine();
+          return;
+        }
+
+        isSpeaking = true;
+        setSpeakingState(true);
+        currentUtteranceIndex = 0;
+
+        function speakNextChunk() {
+          if (!isSpeaking || currentUtteranceIndex >= sentences.length) {
+            isSpeaking = false;
+            setSpeakingState(false);
+            // Cooldown de 400ms para disipar cualquier eco de los altavoces
+            voiceEchoCooldown = true;
+            setTimeout(() => {
+              voiceEchoCooldown = false;
+              if (wakeWordEnabled && !isGenerating) {
+                startRecognitionEngine();
+              }
+            }, 400);
+            return;
+          }
+
+          const chunk = sentences[currentUtteranceIndex++];
+          const utterance = new SpeechSynthesisUtterance(chunk);
+          if (selectedVoice) utterance.voice = selectedVoice;
+          utterance.lang = selectedVoice ? selectedVoice.lang : 'es-ES';
+          utterance.rate = voiceRate;
+          utterance.pitch = 0.95;
+
+          utterance.onend = () => {
+            if (isSpeaking) {
+              speakNextChunk();
+            }
+          };
+
+          utterance.onerror = (e) => {
+            console.warn('SpeechSynthesis error:', e);
+            if (isSpeaking) {
+              speakNextChunk();
+            }
+          };
+
+          window.speechSynthesis.speak(utterance);
+        }
+
+        speakNextChunk();
+      }
+
+      function stopSpeaking() {
+        isSpeaking = false;
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        setSpeakingState(false);
+        voiceEchoCooldown = true;
+        setTimeout(() => {
+          voiceEchoCooldown = false;
+          if (wakeWordEnabled && !isGenerating) {
+            startRecognitionEngine();
+          }
+        }, 350);
+      }
+
+      function setSpeakingState(speaking) {
+        if (speaking) {
+          reactorWrapper.classList.remove('listening', 'thinking');
+          reactorWrapper.classList.add('speaking');
+          statusText.textContent = 'HABLANDO...';
+        } else {
+          reactorWrapper.classList.remove('speaking');
+          if (!isGenerating && !isListening && !isCapturingCommand) {
+            statusText.textContent = wakeWordEnabled ? 'EN ESPERA · "OYE VIERNES"' : 'EN ESPERA';
+          }
+        }
+      }
+
+      function cleanTextForSpeech(raw) {
+        if (!raw) return '';
+        let text = raw;
+
+        // Omitir bloques de código
+        text = text.replace(/```[a-zA-Z0-9_-]*\n([\s\S]*?)```/g, ' [Código adjunto en pantalla] ');
+        text = text.replace(/```[\s\S]*?```/g, ' [Código adjunto en pantalla] ');
+
+        // Enlaces markdown [texto](url) -> texto
+        text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+        // Código inline `código` -> código
+        text = text.replace(/`([^`]+)`/g, '$1');
+
+        // Encabezados
+        text = text.replace(/#{1,6}\s+/g, '');
+
+        // Negritas y cursivas
+        text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
+        text = text.replace(/(\*|_)(.*?)\1/g, '$2');
+
+        // Citas blockquote
+        text = text.replace(/^>\s*/gm, '');
+
+        // Viñetas y números de lista
+        text = text.replace(/^\s*[-*+]\s+/gm, '');
+        text = text.replace(/^\s*\d+\.\s+/gm, '');
+
+        // Quitar caracteres especiales markdown sueltos
+        text = text.replace(/[*#_~`|\\<>{}]/g, '');
+
+        // Normalizar espacios
+        text = text.replace(/\s+/g, ' ').trim();
+
+        return text;
+      }
+
+      function splitIntoSentences(text) {
+        if (!text) return [];
+        const matches = text.match(/[^.!?¡¿]+[.!?¡¿]+|[^.!?¡¿]+$/g) || [text];
+        const result = [];
+
+        for (let item of matches) {
+          let s = item.trim();
+          if (!s) continue;
+          if (s.length > 150) {
+            const sub = s.match(/[^,;:]+[,;:]+|[^,;:]+$/g) || [s];
+            for (let subItem of sub) {
+              const trimmed = subItem.trim();
+              if (trimmed) result.push(trimmed);
+            }
+          } else {
+            result.push(s);
+          }
+        }
+
+        return result;
+      }
+
+      // =========================================================================
+      // MOTOR DE RECONOCIMIENTO DE VOZ Y WAKE-WORD ("OYE VIERNES")
+      // =========================================================================
+      const WAKE_WORD_TRIGGER_REGEX = /(?:\b(?:oye|hey|hola)[,\s]+viernes?\b|^\s*viernes\b[,\s.:;?!])/i;
+      const WAKE_WORD_CLEAN_REGEX = /^.*?\b(?:oye|hey|hola)?[,\s]*viernes?[,\s.:;?!]*/i;
+
+      function playChime(type) {
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          const ctx = new AudioCtx();
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          if (type === 'wake') {
+            // Tono futurista ascendente al escuchar "Oye Viernes"
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, now); // Re5
+            osc.frequency.exponentialRampToValueAtTime(880.00, now + 0.12); // La5
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.18);
+          } else if (type === 'send') {
+            // Tono de confirmación sutil al disparar envío por 1.5s de silencio
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(880.00, now); // La5
+            osc.frequency.exponentialRampToValueAtTime(1174.66, now + 0.10); // Re6
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.14);
+          }
+        } catch (e) {
+          // Si el audio está bloqueado por el navegador hasta la interacción, continuar con normalidad
+        }
+      }
+
+      function setupSpeechRecognition() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          return;
+        }
+
+        try {
+          recognition = new SpeechRecognition();
+          recognition.lang = (selectedVoice && selectedVoice.lang) ? selectedVoice.lang : 'es-ES';
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.maxAlternatives = 1;
+
+          recognition.onstart = () => {
+            isRecognitionRunning = true;
+            updateWakeWordUI();
+          };
+
+          recognition.onspeechstart = () => {
+            if (isSpeaking) stopSpeaking();
+          };
+
+          recognition.onresult = (event) => {
+            if (isSpeaking || voiceEchoCooldown || isGenerating) {
+              return;
+            }
+
+            let interim = '';
+            let final = '';
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+              const res = event.results[i][0].transcript;
+              if (event.results[i].isFinal) {
+                final += res;
+              } else {
+                interim += res;
+              }
+            }
+
+            const currentSpoken = (final || interim).trim();
+            if (!currentSpoken) return;
+
+            if (!isCapturingCommand) {
+              // ESTADO 1: EN ESPERA PASIVA DEL WAKE-WORD ("OYE VIERNES")
+              if (WAKE_WORD_TRIGGER_REGEX.test(currentSpoken)) {
+                wakeUpVoiceCapture(currentSpoken);
+              }
+            } else {
+              // ESTADO 2: CAPTURANDO LA ORDEN DEL SEÑOR BRAULIO
+              processSpokenCommandChunk(currentSpoken);
+            }
+          };
+
+          recognition.onerror = (event) => {
+            console.warn('SpeechRecognition error:', event.error);
+
+            if (event.error === 'no-speech') {
+              // Silencio ambiental ordinario, no interrumpir
+              return;
+            }
+
+            if (event.error === 'aborted') {
+              // Aborto intencional controlado, no generar alerta
+              return;
+            }
+
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+              isRecognitionRunning = false;
+              isCapturingCommand = false;
+              isListening = false;
+              setListeningState(false);
+              updateWakeWordUI();
+              showMicDiagnosticModal(
+                'Permiso de micrófono no concedido',
+                `El navegador o Windows tienen bloqueado el acceso al micrófono.<br><br>
+                <strong>¿Cómo solucionarlo en 2 pasos?</strong><br>
+                1. En la parte superior de la ventana del navegador, busque el icono de candado o configuración del sitio y active el permiso de <strong>Micrófono: Permitir</strong>.<br>
+                2. En su ordenador, abra <em>Configuración de Windows &gt; Privacidad y seguridad &gt; Micrófono</em> y verifique que las aplicaciones tengan permiso para acceder al micrófono.<br><br>
+                <em>Recomendación de navegador:</em> Para que funcione de forma óptima y gratuita, utilice el acceso directo <strong>Mi JARVIS</strong> con <strong>Microsoft Edge</strong> o <strong>Google Chrome</strong>.`
+              );
+            } else if (event.error === 'network') {
+              isRecognitionRunning = false;
+              // Reintentar en segundo plano tras reconexión si el modo Oye Viernes está habilitado
+              if (wakeWordEnabled && !isSpeaking && !isGenerating) {
+                clearTimeout(recognitionRestartTimer);
+                recognitionRestartTimer = setTimeout(() => startRecognitionEngine(), 3000);
+              }
+            }
+          };
+
+          recognition.onend = () => {
+            isRecognitionRunning = false;
+
+            // Si estábamos capturando una orden y ya había texto en el cuadro pero el motor finalizó
+            if (isCapturingCommand && userInput.value.trim().length > 0) {
+              finishVoiceCaptureAndSend();
+              return;
+            }
+
+            if (isCapturingCommand && !userInput.value.trim()) {
+              cancelActiveCapture();
+            }
+
+            // Si el modo Oye Viernes está activo y Viernes está libre, reiniciar automáticamente en segundo plano
+            if (wakeWordEnabled && !isSpeaking && !isGenerating && !voiceEchoCooldown) {
+              clearTimeout(recognitionRestartTimer);
+              recognitionRestartTimer = setTimeout(() => {
+                startRecognitionEngine();
+              }, 350);
+            }
+          };
+
+        } catch (e) {
+          console.error('Error inicializando SpeechRecognition:', e);
+        }
+      }
+
+      function wakeUpVoiceCapture(initialChunk) {
+        isCapturingCommand = true;
+        isListening = true;
+        setListeningState(true);
+        updateWakeWordUI();
+        playChime('wake');
+
+        if (voiceBanner) {
+          voiceBanner.style.display = 'flex';
+          voiceBannerText.textContent = '🎙️ "Oye Viernes" detectado · Le escucho, señor Braulio...';
+        }
+
+        // Si la frase ya incluía la orden tras "Oye Viernes" (ej: "Oye Viernes qué hora es")
+        const commandRemainder = initialChunk.replace(WAKE_WORD_CLEAN_REGEX, '').trim();
+        if (commandRemainder) {
+          userInput.value = commandRemainder;
+          userInput.style.height = 'auto';
+          userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
+          if (voiceBannerText) {
+            voiceBannerText.textContent = `🎙️ "${commandRemainder.slice(-38)}"`;
+          }
+          resetSilenceTimer();
+        } else {
+          userInput.value = '';
+          armNoSpeechTimeout();
+        }
+      }
+
+      function processSpokenCommandChunk(currentChunk) {
+        if (maxSilenceWaitTimeoutId) {
+          clearTimeout(maxSilenceWaitTimeoutId);
+          maxSilenceWaitTimeoutId = null;
+        }
+
+        let cleanSpoken = currentChunk.replace(WAKE_WORD_CLEAN_REGEX, '').trim();
+        if (!cleanSpoken && !userInput.value.trim()) {
+          armNoSpeechTimeout();
+          return;
+        }
+
+        if (cleanSpoken) {
+          userInput.value = cleanSpoken;
+          userInput.style.height = 'auto';
+          userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
+          if (voiceBannerText) {
+            voiceBannerText.textContent = `🎙️ "${cleanSpoken.slice(-38)}"`;
+          }
+        }
+
+        // Reiniciar el temporizador de 1.5 segundos de silencio
+        resetSilenceTimer();
+      }
+
+      function resetSilenceTimer() {
+        if (silenceTimeoutId) {
+          clearTimeout(silenceTimeoutId);
+          silenceTimeoutId = null;
+        }
+
+        const currentText = userInput.value.trim();
+        if (currentText.length > 0) {
+          silenceTimeoutId = setTimeout(() => {
+            console.log('1.5s de silencio detectados tras hablar. Enviando mensaje...');
+            finishVoiceCaptureAndSend();
+          }, 1500); // EXACTAMENTE 1.5 SEGUNDOS
+        }
+      }
+
+      function finishVoiceCaptureAndSend() {
+        if (silenceTimeoutId) {
+          clearTimeout(silenceTimeoutId);
+          silenceTimeoutId = null;
+        }
+        if (maxSilenceWaitTimeoutId) {
+          clearTimeout(maxSilenceWaitTimeoutId);
+          maxSilenceWaitTimeoutId = null;
+        }
+
+        const textToSend = userInput.value.trim();
+        if (!textToSend && !pendingAttachment) {
+          cancelActiveCapture();
+          return;
+        }
+
+        playChime('send');
+        isCapturingCommand = false;
+        isListening = false;
+        setListeningState(false);
+        updateWakeWordUI();
+        if (voiceBanner) voiceBanner.style.display = 'none';
+
+        // Detener temporalmente el reconocedor antes de enviar
+        stopRecognitionEngine();
+
+        // Enviar mensaje a Viernes
+        handleSendMessage();
+      }
+
+      function armNoSpeechTimeout() {
+        if (maxSilenceWaitTimeoutId) clearTimeout(maxSilenceWaitTimeoutId);
+        maxSilenceWaitTimeoutId = setTimeout(() => {
+          if (isCapturingCommand && !userInput.value.trim()) {
+            console.log('Tiempo de espera agotado tras Oye Viernes sin orden.');
+            cancelActiveCapture();
+          }
+        }, 8000);
+      }
+
+      function cancelActiveCapture() {
+        if (silenceTimeoutId) {
+          clearTimeout(silenceTimeoutId);
+          silenceTimeoutId = null;
+        }
+        if (maxSilenceWaitTimeoutId) {
+          clearTimeout(maxSilenceWaitTimeoutId);
+          maxSilenceWaitTimeoutId = null;
+        }
+        isCapturingCommand = false;
+        isListening = false;
+        setListeningState(false);
+        updateWakeWordUI();
+        if (voiceBanner) voiceBanner.style.display = 'none';
+
+        if (wakeWordEnabled && !isSpeaking && !isGenerating && !voiceEchoCooldown) {
+          startRecognitionEngine();
+        }
+      }
+
+      function stopListening() {
+        cancelActiveCapture();
+      }
+
+      function startRecognitionEngine() {
+        if (!wakeWordEnabled && !isCapturingCommand) return;
+        if (isSpeaking || isGenerating || voiceEchoCooldown) return;
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return;
+
+        if (!recognition) {
+          setupSpeechRecognition();
+        }
+
+        if (isRecognitionRunning) return;
+
+        try {
+          recognition.lang = (selectedVoice && selectedVoice.lang) ? selectedVoice.lang : 'es-ES';
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.maxAlternatives = 1;
+          recognition.start();
+          isRecognitionRunning = true;
+          updateWakeWordUI();
+        } catch (err) {
+          if (err.name === 'InvalidStateError') {
+            isRecognitionRunning = true;
+          } else {
+            console.warn('Reconocedor en espera de interacción:', err.message);
+          }
+        }
+      }
+
+      function stopRecognitionEngine() {
+        if (recognitionRestartTimer) {
+          clearTimeout(recognitionRestartTimer);
+          recognitionRestartTimer = null;
+        }
+        if (recognition && isRecognitionRunning) {
+          try {
+            recognition.abort();
+          } catch (e) {}
+        }
+        isRecognitionRunning = false;
+        updateWakeWordUI();
+      }
+
+      function toggleWakeWordMode() {
+        wakeWordEnabled = !wakeWordEnabled;
+        localStorage.setItem(STORAGE_KEY_WAKE_WORD, wakeWordEnabled.toString());
+        if (wakeWordCheckbox) wakeWordCheckbox.checked = wakeWordEnabled;
+
+        if (wakeWordEnabled) {
+          startRecognitionEngine();
+          renderSystemNotice('👂 Modo "Oye Viernes" activado. Micrófono en segundo plano esperando su llamada.', '#00ffaa');
+        } else {
+          cancelActiveCapture();
+          stopRecognitionEngine();
+          renderSystemNotice('🔇 Modo "Oye Viernes" pausado. Micrófono en reposo.', '#94a3b8');
+        }
+        updateWakeWordUI();
+      }
+
+      function updateWakeWordUI() {
+        if (!btnWakeWordToggle) return;
+
+        if (wakeWordEnabled) {
+          btnWakeWordToggle.classList.add('active');
+          if (isCapturingCommand) {
+            btnWakeWordToggle.classList.add('capturing');
+          } else {
+            btnWakeWordToggle.classList.remove('capturing');
+          }
+          if (wakeWordDot) {
+            wakeWordDot.className = isCapturingCommand ? 'wake-word-dot capturing' : 'wake-word-dot active';
+          }
+          if (wakeWordLabel) {
+            wakeWordLabel.textContent = isCapturingCommand ? 'Escuchando...' : 'Oye Viernes: On';
+          }
+          if (micBtn) {
+            if (isCapturingCommand) {
+              micBtn.classList.add('listening');
+            } else {
+              micBtn.classList.remove('listening');
+            }
+          }
+          if (!isGenerating && !isSpeaking && !isCapturingCommand) {
+            statusText.textContent = 'EN ESPERA · "OYE VIERNES"';
+          }
+        } else {
+          btnWakeWordToggle.classList.remove('active', 'capturing');
+          if (wakeWordDot) {
+            wakeWordDot.className = 'wake-word-dot';
+          }
+          if (wakeWordLabel) {
+            wakeWordLabel.textContent = 'Oye Viernes: Off';
+          }
+          if (micBtn) micBtn.classList.remove('listening');
+          if (!isGenerating && !isSpeaking && !isCapturingCommand) {
+            statusText.textContent = 'EN ESPERA';
+          }
+        }
+      }
+
+      function initWakeWord() {
+        updateWakeWordUI();
+        if (wakeWordEnabled) {
+          startRecognitionEngine();
+
+          // Si el navegador requiere interacción previa para autorizar audio:
+          const onFirstInteraction = () => {
+            userInteracted = true;
+            if (wakeWordEnabled && !isRecognitionRunning && !isSpeaking && !isGenerating) {
+              startRecognitionEngine();
+            }
+            window.removeEventListener('click', onFirstInteraction);
+            window.removeEventListener('keydown', onFirstInteraction);
+          };
+          window.addEventListener('click', onFirstInteraction, { once: true });
+          window.addEventListener('keydown', onFirstInteraction, { once: true });
+        }
+      }
+
+      function toggleMicrophone() {
+        if (isSpeaking) {
+          stopSpeaking();
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          showMicDiagnosticModal(
+            'Navegador sin soporte de micrófono',
+            `Su navegador actual no tiene activado el motor nativo de reconocimiento de voz por micrófono.<br><br>
+            <strong>¿Qué navegador usar?</strong><br>
+            Para hablarle a Viernes por micrófono de forma 100% gratuita y sin intermediarios, le recomendamos abrir esta aplicación con <strong>Microsoft Edge</strong> o <strong>Google Chrome</strong>. Ambos navegadores incluyen el transcriptor por voz en español de forma nativa.`
+          );
+          return;
+        }
+
+        if (isCapturingCommand) {
+          cancelActiveCapture();
+        } else {
+          startManualActiveCapture();
+        }
+      }
+
+      function startManualActiveCapture() {
+        userInput.value = '';
+        isCapturingCommand = true;
+        isListening = true;
+        setListeningState(true);
+        updateWakeWordUI();
+        playChime('wake');
+
+        if (voiceBanner) {
+          voiceBanner.style.display = 'flex';
+          voiceBannerText.textContent = '🎙️ Escuchando a Braulio... (hable ahora)';
+        }
+
+        if (!isRecognitionRunning) {
+          startRecognitionEngine();
+        }
+        armNoSpeechTimeout();
+      }
+
+      function setListeningState(listening) {
+        if (listening) {
+          reactorWrapper.classList.remove('speaking', 'thinking');
+          reactorWrapper.classList.add('listening');
+          statusText.textContent = 'ESCUCHANDO A BRAULIO...';
+        } else {
+          reactorWrapper.classList.remove('listening');
+          if (!isGenerating && !isSpeaking) {
+            statusText.textContent = wakeWordEnabled ? 'EN ESPERA · "OYE VIERNES"' : 'EN ESPERA';
+          }
+        }
+      }
+
+      function showMicDiagnosticModal(title, htmlMessage) {
+        if (micErrorTitle) micErrorTitle.textContent = title;
+        if (micErrorDetails) micErrorDetails.innerHTML = htmlMessage;
+        if (micErrorModal) micErrorModal.classList.add('active');
+      }
+
+      function openDrawer() {
+        drawer.classList.add('active');
+        drawerOverlay.classList.add('active');
+        updateStorageMeter();
+        renderSessionsList(drawerSearchInput.value);
+      }
+
+      function closeDrawer() {
+        drawer.classList.remove('active');
+        drawerOverlay.classList.remove('active');
+      }
+
+      function openSettingsModal() {
+        apiKeyInput.value = getApiKey();
+        let savedModel = localStorage.getItem(STORAGE_KEY_MODEL);
+        if (!savedModel || savedModel.startsWith('gemini-1.') || savedModel.startsWith('gemini-2.')) {
+          savedModel = 'gemini-3.8-flash';
+          localStorage.setItem(STORAGE_KEY_MODEL, savedModel);
+        }
+        modelSelect.value = savedModel;
+        apiKeyModal.classList.add('active');
+        apiKeyInput.focus();
+      }
+
+      function closeSettingsModal() {
+        apiKeyModal.classList.remove('active');
+      }
+
+      function saveSettings() {
+        const key = apiKeyInput.value.trim();
+        const model = modelSelect.value;
+
+        if (key) {
+          localStorage.setItem(STORAGE_KEY_API, key);
+        } else {
+          localStorage.removeItem(STORAGE_KEY_API);
+        }
+
+        localStorage.setItem(STORAGE_KEY_MODEL, model);
+        activeModelBadge.textContent = `Modelo: ${model}`;
+        updateKeyBadge();
+        closeSettingsModal();
+        updateStorageMeter();
+
+        const active = getActiveSession();
+        if (key && active.messages.length <= 1) {
+          renderSystemNotice(`Configuración actualizada correctamente. Sistemas listos, señor ${userProfile.name}.`);
+        }
+      }
+
+      function renderButlerGreeting() {
+        const greeting = `A su servicio, señor ${userProfile.name}. Todos mis sistemas están operativos y en espera de sus indicaciones. ¿En qué trabajaremos hoy?`;
+        appendMessage('viernes', greeting, false);
+      }
+
+      function renderSystemNotice(text, accentColor = '#00ffaa') {
+        const div = document.createElement('div');
+        div.className = 'message-row viernes';
+        div.innerHTML = `
+          <div class="message-bubble" style="border-left-color: ${accentColor}; background: rgba(0, 20, 35, 0.7);">
+            <div class="message-author" style="color: ${accentColor};">SISTEMA VIERNES</div>
+            <div class="message-content"><p>${escapeHtml(text)}</p></div>
+          </div>
+        `;
+        chatContainer.appendChild(div);
+        scrollToBottom();
+      }
+
+      function renderToolActivityNotice(toolName, toolArgs, result) {
+        const div = document.createElement('div');
+        div.className = 'message-row viernes';
+        const isSuccess = result.exit_code === 0 && !result.cancelled;
+        const color = isSuccess ? 'var(--accent-cyan)' : '#ff7081';
+        const cmd = toolArgs.command || toolArgs.path || '';
+        const op = toolArgs.operation ? ` (${toolArgs.operation})` : '';
+
+        div.innerHTML = `
+          <div class="message-bubble" style="border-left-color: ${color}; background: rgba(5, 15, 28, 0.85); font-family: var(--font-mono); font-size: 12px; padding: 10px 14px;">
+            <div class="message-author" style="color: ${color}; display: flex; align-items: center; justify-content: space-between;">
+              <span>⚡ HERRAMIENTA LOCAL: ${escapeHtml(toolName.toUpperCase())}${escapeHtml(op)}</span>
+              <span style="font-size: 10px; opacity: 0.8;">Exit code: ${result.exit_code !== undefined ? result.exit_code : 0}</span>
+            </div>
+            <div class="message-content" style="margin-top: 6px;">
+              ${cmd ? `<div style="color: var(--text-main); margin-bottom: 4px; word-break: break-all;"><code>$ ${escapeHtml(cmd)}</code></div>` : ''}
+              <div style="color: var(--text-muted); font-size: 11px;">
+                <span>Estado: ${escapeHtml(result.status || 'OK')}</span>
+                ${result.execution_time_ms ? ` &middot; <span>${result.execution_time_ms}ms</span>` : ''}
+                ${result.timed_out ? ' &middot; <span style="color:#ff7081; font-weight: bold;">TIMEOUT (30s)</span>' : ''}
+                ${result.truncated ? ' &middot; <span style="color:#ffaa00; font-weight: bold;">SALIDA TRUNCADA</span>' : ''}
+                ${result.cancelled ? ' &middot; <span style="color:#ff7081; font-weight: bold;">CANCELADO POR EL USUARIO</span>' : ''}
+              </div>
+            </div>
+          </div>
+        `;
+        chatContainer.appendChild(div);
+        scrollToBottom();
+      }
+
+      // =========================================================================
+      // MANEJO DE ARCHIVOS Y ARRASTRAR / SOLTAR (DRAG & DROP)
+      // =========================================================================
+      const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15 Megabytes
+
+      function setupDragAndDrop() {
+        let dragCounter = 0;
+
+        window.addEventListener('dragenter', (e) => {
+          e.preventDefault();
+          dragCounter++;
+          if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+            dragDropOverlay.style.display = 'flex';
+            requestAnimationFrame(() => dragDropOverlay.classList.add('active'));
+          }
+        });
+
+        window.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = 'copy';
+          }
+        });
+
+        window.addEventListener('dragleave', (e) => {
+          e.preventDefault();
+          dragCounter--;
+          if (dragCounter <= 0) {
+            dragCounter = 0;
+            dragDropOverlay.classList.remove('active');
+            setTimeout(() => {
+              if (dragCounter === 0) dragDropOverlay.style.display = 'none';
+            }, 200);
+          }
+        });
+
+        window.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dragCounter = 0;
+          dragDropOverlay.classList.remove('active');
+          setTimeout(() => {
+            dragDropOverlay.style.display = 'none';
+          }, 200);
+
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFileSelection(e.dataTransfer.files[0]);
+          }
+        });
+
+        if (btnAttachFile && fileAttachInput) {
+          btnAttachFile.addEventListener('click', () => fileAttachInput.click());
+          fileAttachInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              handleFileSelection(e.target.files[0]);
+            }
+            fileAttachInput.value = '';
+          });
+        }
+
+        if (btnRemoveAttachment) {
+          btnRemoveAttachment.addEventListener('click', clearAttachmentPreview);
+        }
+      }
+
+      function handleFileSelection(file) {
+        if (!file) return;
+
+        // 1. Verificación de tamaño previo a cualquier lectura
+        if (file.size > MAX_FILE_SIZE) {
+          const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+          renderSystemNotice(
+            `⚠️ Archivo demasiado grande: "${file.name}" (${sizeMb} MB) supera el límite de 15 MB para lectura directa en Google Gemini. Por favor elija un archivo más ligero.`,
+            '#ff334b'
+          );
+          if (voiceEnabled) {
+            speakText(`El archivo ${file.name} es demasiado grande. El límite admitido es de 15 megabytes, señor ${userProfile.name}.`);
+          }
+          return;
+        }
+
+        // 2. Verificación de formato soportado
+        const fileName = file.name.toLowerCase();
+        const isPdf = file.type === 'application/pdf' || fileName.endsWith('.pdf');
+        const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(fileName);
+        const isText = file.type.startsWith('text/') || /\.(txt|md|markdown|csv|json|js|mjs|ts|py|html|htm|css|xml|yaml|yml|log|sh|bat|ps1|sql)$/i.test(fileName);
+
+        if (!isPdf && !isImage && !isText) {
+          const ext = file.name.split('.').pop() || 'desconocido';
+          renderSystemNotice(
+            `⚠️ Formato no compatible: Viernes no puede examinar archivos con extensión .${escapeHtml(ext)}. Formatos admitidos: Documentos PDF (.pdf), imágenes (PNG, JPG, WEBP, GIF) y archivos de texto o código (.txt, .md, .csv, .json, .py, etc.).`,
+            '#ff334b'
+          );
+          if (voiceEnabled) {
+            speakText(`No puedo procesar archivos con extensión punto ${ext}. Por favor facilite un PDF, una imagen o un archivo de texto.`);
+          }
+          return;
+        }
+
+        // 3. Lectura del archivo en memoria del navegador
+        const reader = new FileReader();
+
+        if (isText) {
+          reader.onload = (e) => {
+            const content = e.target.result;
+            const sizeStr = formatFileSize(file.size);
+
+            pendingAttachment = {
+              name: file.name,
+              size: file.size,
+              sizeFormatted: sizeStr,
+              mimeType: 'text/plain',
+              typeLabel: 'TEXTO',
+              data: btoa(unescape(encodeURIComponent(content))),
+              textContent: content,
+              previewUrl: null,
+              isText: true,
+              isImage: false
+            };
+
+            showAttachmentPreview(pendingAttachment);
+            renderSystemNotice(`📎 Documento recibido: ${escapeHtml(file.name)} (Texto, ${sizeStr}). Listo para su consulta, señor ${userProfile.name}.`, '#00f0ff');
+            if (voiceEnabled) {
+              speakText(`He recibido el archivo: ${file.name}. ¿Qué desea que consulte sobre él, señor ${userProfile.name}?`);
+            }
+            userInput.focus();
+          };
+          reader.onerror = () => {
+            renderSystemNotice(`⚠️ Error al leer el archivo "${file.name}".`, '#ff334b');
+          };
+          reader.readAsText(file);
+
+        } else {
+          // PDF o Imagen
+          reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            const base64Data = dataUrl.split(',')[1];
+            const sizeStr = formatFileSize(file.size);
+            const resolvedMime = isPdf ? 'application/pdf' : (file.type || 'image/jpeg');
+            const typeLabel = isPdf ? 'PDF' : 'IMAGEN';
+
+            pendingAttachment = {
+              name: file.name,
+              size: file.size,
+              sizeFormatted: sizeStr,
+              mimeType: resolvedMime,
+              typeLabel: typeLabel,
+              data: base64Data,
+              textContent: null,
+              previewUrl: isImage ? dataUrl : null,
+              isText: false,
+              isImage: isImage
+            };
+
+            showAttachmentPreview(pendingAttachment);
+            renderSystemNotice(`📎 Documento recibido: ${escapeHtml(file.name)} (${typeLabel}, ${sizeStr}). Listo para su consulta, señor ${userProfile.name}.`, '#00f0ff');
+            if (voiceEnabled) {
+              speakText(`He recibido el documento: ${file.name}. ¿Qué desea que examine sobre él, señor ${userProfile.name}?`);
+            }
+            userInput.focus();
+          };
+          reader.onerror = () => {
+            renderSystemNotice(`⚠️ Error al procesar el archivo "${file.name}".`, '#ff334b');
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
+      function showAttachmentPreview(attachment) {
+        if (!attachmentPreviewBar) return;
+        attachmentName.textContent = attachment.name;
+        attachmentSize.textContent = `(${attachment.sizeFormatted})`;
+        attachmentPreviewBar.style.display = 'flex';
+      }
+
+      function clearAttachmentPreview() {
+        pendingAttachment = null;
+        if (attachmentPreviewBar) {
+          attachmentPreviewBar.style.display = 'none';
+        }
+      }
+
+      function formatFileSize(bytes) {
+        if (!bytes || bytes <= 0) return '0 B';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      }
+
+      // =========================================================================
+      // ENVÍO DE MENSAJES Y LLAMADA A GEMINI
+      // =========================================================================
+      async function handleSendMessage() {
+        if (isSpeaking) stopSpeaking();
+        if (isListening || isCapturingCommand) cancelActiveCapture();
+        stopRecognitionEngine();
+        if (isGenerating) return;
+
+        let text = userInput.value.trim();
+        // Si no hay texto escrito pero hay un documento adjunto, usar solicitud por defecto
+        if (!text && pendingAttachment) {
+          text = `Por favor, examine atentamente el documento adjunto ("${pendingAttachment.name}"), explíqueme de qué trata y destaque los puntos más relevantes.`;
+        }
+
+        if (!text && !pendingAttachment) return;
+
+        const apiKey = getApiKey();
+        if (!apiKey) {
+          openSettingsModal();
+          return;
+        }
+
+        const session = getActiveSession();
+
+        // Extraer archivo adjunto para este turno
+        let currentAttachmentInfo = null;
+        if (pendingAttachment) {
+          currentAttachmentInfo = {
+            name: pendingAttachment.name,
+            size: pendingAttachment.size,
+            sizeFormatted: pendingAttachment.sizeFormatted,
+            mimeType: pendingAttachment.mimeType,
+            typeLabel: pendingAttachment.typeLabel,
+            isImage: pendingAttachment.isImage,
+            previewUrl: pendingAttachment.previewUrl
+          };
+          // Mantener en memoria para la sesión activa
+          sessionActiveDocument = { ...pendingAttachment };
+          clearAttachmentPreview();
+        }
+
+        // Si es el primer mensaje de usuario, generar un título descriptivo para la conversación
+        if (session.messages.filter(m => m.role === 'user').length === 0) {
+          let autoTitle = currentAttachmentInfo ? `Doc: ${currentAttachmentInfo.name}` : text.slice(0, 35).trim();
+          if (autoTitle.length > 35) autoTitle = autoTitle.slice(0, 35) + '...';
+          session.title = autoTitle;
+        }
+
+        // Agregar mensaje de usuario al DOM y a la sesión activa
+        appendMessage('user', text, true, session.messages.length, currentAttachmentInfo);
+        session.messages.push({
+          role: 'user',
+          text: text,
+          attachmentInfo: currentAttachmentInfo,
+          timestamp: new Date().toISOString()
+        });
+        session.updatedAt = new Date().toISOString();
+        saveSessions();
+        renderSessionsList(drawerSearchInput.value);
+
+        // Limpiar entrada
+        userInput.value = '';
+        userInput.style.height = 'auto';
+
+        // Activar modo pensando
+        setThinkingState(true);
+        const thinkingBubble = renderThinkingIndicator();
+
+        try {
+          let model = localStorage.getItem(STORAGE_KEY_MODEL) || 'gemini-3.8-flash';
+
+          // Compresión de contexto en segundo plano si la conversación es larga
+          maybeCompressConversationContext(apiKey, session);
+
+          const replyText = await callGeminiAPI(apiKey, model, session);
+
+          thinkingBubble.remove();
+
+          // Renderizar y guardar respuesta de Viernes
+          appendMessage('viernes', replyText, true, session.messages.length);
+          session.messages.push({ role: 'model', text: replyText, timestamp: new Date().toISOString() });
+          session.updatedAt = new Date().toISOString();
+          saveSessions();
+          renderSessionsList(drawerSearchInput.value);
+
+          // Leer en voz alta la respuesta si la voz está activada
+          speakText(replyText);
+
+        } catch (error) {
+          thinkingBubble.remove();
+          handleExecutionError(error);
+        } finally {
+          setThinkingState(false);
+          scrollToBottom();
+          userInput.focus();
+        }
+      }
+
+      // =========================================================================
+      // HERRAMIENTAS LOCALES Y PUENTE DE EJECUCIÓN (TOOL CALLING)
+      // =========================================================================
+      const VIERNES_LOCAL_BRIDGE_URL = 'http://127.0.0.1:18820';
+      let isBridgeConnected = false;
+
+      const VIERNES_TOOLS = [
+        {
+          functionDeclarations: [
+            {
+              name: 'run_powershell_command',
+              description: 'Ejecuta scripts o comandos en PowerShell en el entorno local de Windows. Retorna stdout, stderr y exit_code estructurados. Posee timeout y truncado seguro de salida para no desbordar el contexto.',
+              parameters: {
+                type: 'OBJECT',
+                properties: {
+                  command: {
+                    type: 'STRING',
+                    description: 'Comando o script de PowerShell que se desea ejecutar en Windows.'
+                  },
+                  working_directory: {
+                    type: 'STRING',
+                    description: 'Ruta opcional del directorio de trabajo. Por defecto se usa la carpeta del usuario.'
+                  },
+                  timeout_seconds: {
+                    type: 'INTEGER',
+                    description: 'Tiempo límite de ejecución en segundos antes de forzar la terminación del proceso (por defecto 30).'
+                  }
+                },
+                required: ['command']
+              }
+            },
+            {
+              name: 'file_system_operations',
+              description: 'Operaciones en el sistema de archivos local de Windows: lectura de texto, escritura/creación de archivos y listado de directorios.',
+              parameters: {
+                type: 'OBJECT',
+                properties: {
+                  operation: {
+                    type: 'STRING',
+                    enum: ['read', 'write', 'list'],
+                    description: 'Operación a realizar: read (leer archivo), write (escribir o sobrescribir archivo), list (listar archivos y subdirectorios).'
+                  },
+                  path: {
+                    type: 'STRING',
+                    description: 'Ruta absoluta o relativa del archivo o directorio en Windows.'
+                  },
+                  content: {
+                    type: 'STRING',
+                    description: 'Contenido de texto a escribir en el archivo (requerido si operation es write).'
+                  },
+                  encoding: {
+                    type: 'STRING',
+                    enum: ['utf-8', 'ascii'],
+                    description: 'Codificación del archivo (opcional, por defecto utf-8).'
+                  },
+                  max_entries: {
+                    type: 'INTEGER',
+                    description: 'Límite de elementos a listar en directorios (opcional, por defecto 100).'
+                  }
+                },
+                required: ['operation', 'path']
+              }
+            }
+          ]
+        }
+      ];
+
+      async function checkLocalBridgeHealth() {
+        try {
+          const controller = new AbortController();
+          const tId = setTimeout(() => controller.abort(), 1200);
+          const res = await fetch(`${VIERNES_LOCAL_BRIDGE_URL}/health`, {
+            method: 'GET',
+            signal: controller.signal
+          });
+          clearTimeout(tId);
+          isBridgeConnected = res.ok;
+          updateBridgeBadgeUI(isBridgeConnected);
+          return isBridgeConnected;
+        } catch (e) {
+          isBridgeConnected = false;
+          updateBridgeBadgeUI(false);
+          return false;
+        }
+      }
+
+      function updateBridgeBadgeUI(connected) {
+        const badge = document.getElementById('bridgeStatusBadge');
+        if (!badge) return;
+        if (connected) {
+          badge.textContent = 'Puente Local: Conectado (127.0.0.1:18820)';
+          badge.style.color = '#00ffaa';
+        } else {
+          badge.textContent = 'Puente Local: Desconectado';
+          badge.style.color = 'var(--text-dim)';
+        }
+      }
+
+      async function executeBridgeTool(toolName, toolArgs, confirmed = false) {
+        try {
+          const res = await fetch(`${VIERNES_LOCAL_BRIDGE_URL}/execute`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tool: toolName,
+              args: toolArgs,
+              confirmed: confirmed
+            })
+          });
+          if (!res.ok) {
+            throw new Error(`El puente devolvió código HTTP ${res.status}`);
+          }
+          return await res.json();
+        } catch (err) {
+          return {
+            status: 'BRIDGE_UNAVAILABLE',
+            stdout: '',
+            stderr: `Fallo de comunicación con el puente local: ${err.message}. Asegúrese de ejecutar 'start_bridge.bat' en Windows.`,
+            exit_code: 503
+          };
+        }
+      }
+
+      function promptUserConfirmation(command, reason) {
+        return new Promise((resolve) => {
+          const approved = window.confirm(
+            `⚠️ ALERTA DE SEGURIDAD - VIERNES\n\n` +
+            `Señor ${userProfile.name}, he interceptado un comando con potencial destructivo o modificación crítica en su equipo:\n\n` +
+            `Instrucción:\n${command}\n\n` +
+            `Motivo:\n${reason}\n\n` +
+            `¿Autoriza expresamente la ejecución de esta operación?`
+          );
+          resolve(approved);
+        });
+      }
+
+      // Ejecuta una petición individual contra la API de Google Gemini con soporte para Tool Calling
+      async function executeSingleGeminiRequest(apiKey, activeModel, contentsOrHistory, customSystemInstruction = null) {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModel)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+        let contents = [];
+        if (Array.isArray(contentsOrHistory)) {
+          contents = contentsOrHistory;
+        } else if (contentsOrHistory && contentsOrHistory.messages) {
+          // Si es un objeto de sesión, tomar los últimos 8 mensajes para no saturar la cuota
+          const recentMsgs = contentsOrHistory.messages.slice(-8);
+          let docIncluded = false;
+
+          for (let i = 0; i < recentMsgs.length; i++) {
+            const item = recentMsgs[i];
+            const parts = [];
+
+            // Si hay un documento activo en memoria y es mensaje de usuario:
+            // Incluirlo en el turno donde fue adjuntado, o en el último mensaje de usuario si no se ha incluido aún
+            const shouldIncludeDoc = (!docIncluded && sessionActiveDocument && sessionActiveDocument.data &&
+              (item.attachmentInfo || i === recentMsgs.length - 1) && item.role === 'user');
+
+            if (shouldIncludeDoc) {
+              if (sessionActiveDocument.isText && sessionActiveDocument.textContent) {
+                const textSnippet = sessionActiveDocument.textContent.slice(0, 100000);
+                parts.push({
+                  text: `[Documento adjunto para consulta: "${sessionActiveDocument.name}"]:\n\`\`\`\n${textSnippet}\n\`\`\`\n`
+                });
+              } else {
+                parts.push({
+                  inlineData: {
+                    mimeType: sessionActiveDocument.mimeType,
+                    data: sessionActiveDocument.data,
+                    displayName: sessionActiveDocument.name
+                  }
+                });
+              }
+              docIncluded = true;
+            }
+
+            parts.push({ text: item.text });
+
+            contents.push({
+              role: item.role === 'user' ? 'user' : 'model',
+              parts: parts
+            });
+          }
+        }
+
+        const sysPrompt = customSystemInstruction || buildSystemInstruction(contentsOrHistory && contentsOrHistory.summary);
+
+        // Comprobar estado del puente local de herramientas
+        const bridgeOnline = await checkLocalBridgeHealth();
+
+        let toolLoopCount = 0;
+        const maxToolLoops = 5;
+
+        while (toolLoopCount < maxToolLoops) {
+          toolLoopCount++;
+
+          const payload = {
+            systemInstruction: {
+              parts: [{ text: sysPrompt }]
+            },
+            contents: contents,
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 4096
+            }
+          };
+
+          if (bridgeOnline) {
+            payload.tools = VIERNES_TOOLS;
+          }
+
+          let response;
+          try {
+            response = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            });
+          } catch (fetchErr) {
+            const netErr = new Error('No se pudo establecer conexión con los servidores de Google.');
+            netErr.technicalDetails = {
+              code: 'NETWORK_ERROR',
+              status: 'FETCH_FAILED',
+              message: fetchErr.message || 'Compruebe su conexión a Internet o si un cortafuegos bloquea el acceso a generativelanguage.googleapis.com.'
+            };
+            throw netErr;
+          }
+
+          if (!response.ok) {
+            let errorJson = null;
+            let rawErrorText = '';
+            try {
+              errorJson = await response.json();
+            } catch (e) {
+              try {
+                rawErrorText = await response.text();
+              } catch (ignore) {}
+            }
+
+            const googleCode = errorJson?.error?.code || response.status;
+            const googleStatus = errorJson?.error?.status || response.statusText || 'ERROR';
+            const googleMessage = errorJson?.error?.message || rawErrorText || 'Sin mensaje detallado devuelto por Google.';
+
+            const apiErr = new Error(googleMessage);
+            apiErr.technicalDetails = {
+              code: googleCode,
+              status: googleStatus,
+              message: googleMessage,
+              model: activeModel,
+              details: errorJson?.error?.details
+            };
+            throw apiErr;
+          }
+
+          const data = await response.json();
+          const candidate = data.candidates && data.candidates[0];
+          if (!candidate) {
+            const emptyErr = new Error('Google Gemini no devolvió ningún candidato de respuesta.');
+            emptyErr.technicalDetails = {
+              code: 204,
+              status: 'EMPTY_RESPONSE',
+              message: 'La llamada fue exitosa pero la lista de candidates está vacía.'
+            };
+            throw emptyErr;
+          }
+
+          if (candidate.finishReason && candidate.finishReason !== 'STOP' && candidate.finishReason !== 'MAX_TOKENS') {
+            const safetyErr = new Error(`La generación fue interrumpida por las políticas de Google (${candidate.finishReason}).`);
+            safetyErr.technicalDetails = {
+              code: 400,
+              status: candidate.finishReason,
+              message: `finishReason reportado: ${candidate.finishReason}. El filtro de contenido bloqueó la respuesta.`
+            };
+            throw safetyErr;
+          }
+
+          const parts = candidate.content?.parts || [];
+          const functionCallPart = parts.find(p => p.functionCall);
+
+          // Si no hay solicitud de herramienta, se ha obtenido la respuesta final en lenguaje natural
+          if (!functionCallPart) {
+            const responseText = parts.map(p => p.text).join('') || '';
+            if (!responseText.trim()) {
+              throw new Error('La respuesta de Gemini llegó con texto vacío.');
+            }
+            return responseText;
+          }
+
+          // Procesar llamada a herramienta emitida por el modelo
+          const fnCall = functionCallPart.functionCall;
+          statusText.textContent = `EJECUTANDO: ${fnCall.name.toUpperCase()}...`;
+
+          let toolResult = await executeBridgeTool(fnCall.name, fnCall.args || {}, false);
+
+          if (toolResult.status === 'CONFIRMATION_REQUIRED' || toolResult.requires_confirmation) {
+            const cmdDesc = fnCall.args?.command || fnCall.args?.path || fnCall.name;
+            const userApproved = await promptUserConfirmation(cmdDesc, toolResult.risk_reason || 'Instrucción clasificada como de riesgo crítico');
+            if (userApproved) {
+              toolResult = await executeBridgeTool(fnCall.name, fnCall.args || {}, true);
+            } else {
+              toolResult = {
+                status: 'CANCELLED_BY_USER',
+                stdout: '',
+                stderr: `Operación cancelada por orden directa del señor ${userProfile.name}.`,
+                exit_code: 1,
+                cancelled: true
+              };
+            }
+          }
+
+          // Notificar en la interfaz la ejecución de la herramienta
+          renderToolActivityNotice(fnCall.name, fnCall.args || {}, toolResult);
+
+          // 1. Inyectar functionCall del modelo al contexto preservando el orden de turnos
+          contents.push({
+            role: 'model',
+            parts: [functionCallPart]
+          });
+
+          // 2. Inyectar functionResponse con la salida estructurada de la herramienta
+          contents.push({
+            role: 'user',
+            parts: [{
+              functionResponse: {
+                name: fnCall.name,
+                response: {
+                  output: toolResult
+                }
+              }
+            }]
+          });
+
+          statusText.textContent = `VIERNES SINTETIZANDO RESPUESTA...`;
+        }
+
+        throw new Error('Se superó el límite de turnos consecutivos de herramientas.');
+      }
+
+      // Orquestador resiliente con cascada de modelos ante sobrecarga 503/429
+      async function callGeminiAPI(apiKey, requestedModel, session) {
+        let initialModel = requestedModel;
+        if (!initialModel || initialModel.startsWith('gemini-1.') || initialModel.startsWith('gemini-2.')) {
+          initialModel = 'gemini-3.8-flash';
+        }
+
+        const candidatePool = [initialModel, 'gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.5-flash'];
+        const uniqueModels = [...new Set(candidatePool)];
+
+        let lastError = null;
+
+        for (let m = 0; m < uniqueModels.length; m++) {
+          const currentModel = uniqueModels[m];
+
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              if (m > 0) {
+                statusText.textContent = `CANALIZANDO CON RESPALDO (${currentModel})...`;
+              } else if (attempt > 1) {
+                statusText.textContent = `REINTENTANDO TRAS ALTA DEMANDA...`;
+              }
+
+              const resultText = await executeSingleGeminiRequest(apiKey, currentModel, session);
+
+              if (currentModel !== initialModel) {
+                activeModelBadge.textContent = `Modelo: ${currentModel} (Respaldo)`;
+                renderSystemNotice(`Aviso de servicio: Debido a alta demanda mundial en Google (${initialModel}), la respuesta fue canalizada con éxito mediante el motor de respaldo ${currentModel}.`);
+              }
+
+              return resultText;
+            } catch (err) {
+              lastError = err;
+              const details = err.technicalDetails || {};
+              const code = details.code;
+              const msg = String(details.message || '').toLowerCase();
+              const isOverloaded = code === 503 || details.status === 'UNAVAILABLE' || msg.includes('high demand') || msg.includes('overloaded');
+              const isQuota = code === 429;
+              const isNotFound = code === 404 || msg.includes('no longer available');
+
+              if ((code === 400 && msg.includes('api key')) || code === 403) {
+                throw err;
+              }
+
+              if (isOverloaded && attempt === 1) {
+                statusText.textContent = 'ALTA DEMANDA EN GOOGLE: REINTENTANDO EN 2S...';
+                await delay(2000);
+                continue;
+              }
+
+              if (isOverloaded || isQuota || isNotFound) {
+                break;
+              }
+
+              throw err;
+            }
+          }
+        }
+
+        throw lastError;
+      }
+
+      function handleExecutionError(error) {
+        const details = error.technicalDetails || {
+          code: 500,
+          status: 'INTERNAL_CLIENT_ERROR',
+          message: error.message || String(error)
+        };
+
+        const codeStr = String(details.code);
+        const msgStr = String(details.message);
+        const statusStr = String(details.status);
+
+        let friendlyMessage = '';
+        if (codeStr === '400' && (msgStr.includes('API key') || msgStr.includes('INVALID_ARGUMENT'))) {
+          friendlyMessage = `Señor ${userProfile.name}, me temo que la llave de acceso a Google no es válida o ha caducado. Le sugiero renovarla pulsando el botón de ajustes a continuación.`;
+        } else if (codeStr === '503' || statusStr === 'UNAVAILABLE' || msgStr.toLowerCase().includes('high demand') || msgStr.toLowerCase().includes('temporarily')) {
+          friendlyMessage = `Señor ${userProfile.name}, los servidores de Google para los modelos principales están experimentando un pico de saturación mundial por alta demanda en este instante. No es un fallo de su equipo ni de su clave. He intentado los modelos de respaldo; puede pulsar "Reintentar" en unos momentos o seleccionar "Gemini 3.5 Flash-Lite" en Ajustes para disponer de respuesta inmediata sin congestión.`;
+        } else if (codeStr === '429' || statusStr === 'RESOURCE_EXHAUSTED' || msgStr.toLowerCase().includes('quota')) {
+          friendlyMessage = `Señor ${userProfile.name}, la cuota gratuita de su llave de Gemini ha alcanzado el límite permitido por Google. Por favor, aguarde unos momentos para que se restablezca el cupo, o proporcione otra clave.`;
+        } else if (codeStr === '403') {
+          friendlyMessage = `Señor ${userProfile.name}, Google ha denegado la solicitud. Es posible que la clave carezca de los permisos necesarios o exista una restricción geográfica.`;
+        } else if (codeStr === '404') {
+          friendlyMessage = `Señor ${userProfile.name}, el modelo seleccionado no se encuentra disponible. Puede seleccionar otro en la configuración.`;
+        } else if (statusStr === 'FETCH_FAILED' || details.code === 'NETWORK_ERROR') {
+          friendlyMessage = `Señor ${userProfile.name}, no logré comunicarme con los servidores de Google. Verifique que su equipo cuenta con conexión a Internet.`;
+        } else {
+          friendlyMessage = `Señor ${userProfile.name}, ha ocurrido una anomalía durante la consulta con Google Gemini. He registrado los parámetros del incidente.`;
+        }
+
+        const div = document.createElement('div');
+        div.className = 'message-row viernes';
+
+        div.innerHTML = `
+          <div class="message-bubble" style="border-left-color: var(--error-border);">
+            <div class="message-author" style="color: #ff7081;">VIERNES &middot; AVISO DE INCIDENCIA</div>
+            <div class="message-content">
+              <p>${escapeHtml(friendlyMessage)}</p>
+            </div>
+            
+            <div class="technical-error-card">
+              <div class="error-card-header">
+                <span>⚠️ DIAGNÓSTICO TÉCNICO GOOGLE</span>
+                <span class="error-code-badge">${escapeHtml(codeStr)}</span>
+              </div>
+              <div class="error-card-body">
+                <div>
+                  <span class="error-field-label">Estado de la API:</span>
+                  <div class="error-field-value">${escapeHtml(statusStr)}</div>
+                </div>
+                <div>
+                  <span class="error-field-label">Mensaje exacto devuelto por Google:</span>
+                  <div class="error-field-value">${escapeHtml(msgStr)}</div>
+                </div>
+              </div>
+              <div class="error-actions">
+                <button type="button" class="error-btn" onclick="document.getElementById('btnSettings').click()">Configurar Clave</button>
+                <button type="button" class="error-btn" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);" onclick="window.retryLast()">Reintentar</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        chatContainer.appendChild(div);
+        scrollToBottom();
+      }
+
+      window.retryLast = function() {
+        const session = getActiveSession();
+        if (session && session.messages.length > 0) {
+          const lastUserMsg = [...session.messages].reverse().find(m => m.role === 'user');
+          if (lastUserMsg) {
+            userInput.value = lastUserMsg.text;
+            handleSendMessage();
+          }
+        }
+      };
+
+      function setThinkingState(thinking) {
+        isGenerating = thinking;
+        sendBtn.disabled = thinking;
+        if (micBtn) micBtn.disabled = thinking;
+
+        if (thinking) {
+          stopRecognitionEngine();
+          reactorWrapper.classList.remove('speaking', 'listening');
+          reactorWrapper.classList.add('thinking');
+          statusText.textContent = 'PROCESANDO RESPUESTA...';
+        } else {
+          reactorWrapper.classList.remove('thinking');
+          if (!isSpeaking && !isListening && !isCapturingCommand) {
+            statusText.textContent = wakeWordEnabled ? 'EN ESPERA · "OYE VIERNES"' : 'EN ESPERA';
+          }
+          if (wakeWordEnabled && !isSpeaking) {
+            startRecognitionEngine();
+          }
+        }
+      }
+
+      function renderThinkingIndicator() {
+        const div = document.createElement('div');
+        div.className = 'message-row viernes';
+        div.innerHTML = `
+          <div class="thinking-bubble">
+            <div class="thinking-dots">
+              <span class="thinking-dot"></span>
+              <span class="thinking-dot"></span>
+              <span class="thinking-dot"></span>
+            </div>
+            <span>Viernes está procesando, señor ${userProfile.name}...</span>
+          </div>
+        `;
+        chatContainer.appendChild(div);
+        scrollToBottom();
+        return div;
+      }
+
+      function appendMessage(role, text, shouldScroll = true, msgIndex = null, attachmentInfo = null) {
+        const row = document.createElement('div');
+        row.className = `message-row ${role}`;
+        if (msgIndex !== null) {
+          row.dataset.msgIndex = msgIndex;
+        }
+
+        const authorName = role === 'user' ? userProfile.name.toUpperCase() : 'VIERNES';
+        const formattedHtml = role === 'user' ? `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>` : formatMarkdown(text);
+
+        let attachmentHtml = '';
+        if (attachmentInfo) {
+          if (attachmentInfo.previewUrl && attachmentInfo.isImage) {
+            attachmentHtml = `<img src="${attachmentInfo.previewUrl}" class="msg-attachment-image" alt="${escapeHtml(attachmentInfo.name)}">`;
+          } else {
+            const badgeLabel = attachmentInfo.typeLabel || (attachmentInfo.mimeType && attachmentInfo.mimeType.includes('pdf') ? 'PDF' : 'DOC');
+            attachmentHtml = `
+              <div class="msg-attachment-card">
+                <div class="file-icon-badge">${escapeHtml(badgeLabel)}</div>
+                <div class="file-details">
+                  <div class="file-name">📎 ${escapeHtml(attachmentInfo.name)}</div>
+                  <div class="file-meta">${escapeHtml(attachmentInfo.sizeFormatted || '')} · Documento analizado</div>
+                </div>
+              </div>
+            `;
+          }
+        }
+
+        row.innerHTML = `
+          <div class="message-bubble">
+            <div class="message-author">${authorName}</div>
+            ${attachmentHtml}
+            <div class="message-content">${formattedHtml}</div>
+          </div>
+        `;
+
+        chatContainer.appendChild(row);
+        if (shouldScroll) scrollToBottom();
+        attachCopyButtons(row);
+      }
+
+      function scrollToBottom() {
+        requestAnimationFrame(() => {
+          chatMain.scrollTop = chatMain.scrollHeight;
+        });
+      }
+
+      // =========================================================================
+      // FORMATEADOR DE MARKDOWN Y UTILIDADES
+      // =========================================================================
+      function formatMarkdown(raw) {
+        if (!raw) return '';
+
+        const codeBlocks = [];
+        let text = raw.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+          const index = codeBlocks.length;
+          codeBlocks.push({ lang: lang || 'código', code: code.trim() });
+          return `__CODE_BLOCK_${index}__`;
+        });
+
+        text = escapeHtml(text);
+
+        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        text = text.replace(/__(.*?)__/g, '<strong>$1</strong>');
+        text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+        text = text.replace(/^>\s?(.*)$/gm, '<blockquote>$1</blockquote>');
+        text = text.replace(/^\s*[-*]\s+(.*)$/gm, '<li>$1</li>');
+        text = text.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+
+        const paragraphs = text.split(/\n{2,}/);
+        text = paragraphs.map(p => {
+          p = p.trim();
+          if (p.startsWith('<ul>') || p.startsWith('<blockquote>') || p.startsWith('__CODE_BLOCK_')) {
+            return p.replace(/\n/g, '<br>');
+          }
+          return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+        }).join('');
+
+        text = text.replace(/__CODE_BLOCK_(\d+)__/g, (match, id) => {
+          const block = codeBlocks[parseInt(id, 10)];
+          if (!block) return '';
+          return `
+            <div class="code-block-wrapper">
+              <div class="code-header">
+                <span>${escapeHtml(block.lang.toUpperCase())}</span>
+                <button type="button" class="code-copy-btn">Copiar</button>
+              </div>
+              <pre><code>${escapeHtml(block.code)}</code></pre>
+            </div>
+          `;
+        });
+
+        return text;
+      }
+
+      function attachCopyButtons(container) {
+        const buttons = container.querySelectorAll('.code-copy-btn');
+        buttons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const pre = btn.closest('.code-block-wrapper').querySelector('pre code');
+            if (pre) {
+              navigator.clipboard.writeText(pre.textContent).then(() => {
+                const prevText = btn.textContent;
+                btn.textContent = '¡Copiado!';
+                btn.style.color = '#00f0ff';
+                setTimeout(() => {
+                  btn.textContent = prevText;
+                  btn.style.color = '';
+                }, 2000);
+              });
+            }
+          });
+        });
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+    })();
+  </script>
+</body>
+</html>
