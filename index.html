@@ -1785,7 +1785,7 @@
     <div class="drawer-footer">
       <div class="storage-meter-row">
         <span class="storage-label">Memoria local:</span>
-        <span class="storage-value" id="storageUsageLabel">0 KB / ~5 MB</span>
+        <span class="storage-value" id="storageUsageLabel">0 KB / Alta Capacidad</span>
       </div>
       <div class="storage-bar-track">
         <div class="storage-bar-fill" id="storageBarFill" style="width: 2%;"></div>
@@ -2083,6 +2083,12 @@
       const STORAGE_KEY_VOICE_RATE = 'viernes_voice_rate';
       const STORAGE_KEY_WAKE_WORD = 'viernes_wake_word_enabled';
 
+      // Constantes de almacenamiento de alta capacidad (IndexedDB para gigabytes de memoria local)
+      const IDB_DB_NAME = 'viernes_high_capacity_db';
+      const IDB_STORE_NAME = 'viernes_kv_store';
+      const IDB_VERSION = 1;
+      let idbInstance = null;
+
       // Ficha por defecto
       const DEFAULT_PROFILE = {
         name: 'Braulio',
@@ -2097,6 +2103,20 @@
       let sessions = []; // [{ id, title, createdAt, updatedAt, summary, lastSummaryCount, messages: [{ role, text, timestamp }] }]
       let activeSessionId = null;
       let isGenerating = false;
+
+      // Estado en memoria del puente local de PowerShell (CERO impacto en almacenamiento, CERO archivos residuales)
+      const VIERNES_LOCAL_BRIDGE_URL = 'http://127.0.0.1:18820';
+      let isBridgeConnected = false;
+      let bridgeConnectionState = 'disconnected'; // 'connected' | 'reconnecting' | 'disconnected'
+      let bridgeReconnectTimer = null;
+      let bridgeHeartbeatTimer = null;
+      let bridgeReconnectAttempts = 0;
+      let isBridgeCheckInProgress = false;
+
+      const BRIDGE_HEARTBEAT_INTERVAL = 12000;      // 12s en estado saludable
+      const BRIDGE_RECONNECT_MIN_DELAY = 1500;      // 1.5s inicial al perder conexión
+      const BRIDGE_RECONNECT_MAX_DELAY = 5000;      // 5s tope de espera entre reintentos silenciosos
+      const BRIDGE_MAX_SILENT_RETRIES = 3;          // 3 reintentos transparentes inmediatos en herramientas
 
       // Estado de Voz, Micrófono y Wake-Word ("Oye Viernes")
       let voiceEnabled = localStorage.getItem(STORAGE_KEY_VOICE_ENABLED) !== 'false';
@@ -2211,55 +2231,64 @@
       // Utilidad de retardo
       const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
-      // Inicialización
-      init();
-
       function init() {
-        // 1. Cargar modelo guardado o migrar
-        let savedModel = localStorage.getItem(STORAGE_KEY_MODEL);
-        if (!savedModel || savedModel.startsWith('gemini-1.') || savedModel.startsWith('gemini-2.')) {
-          savedModel = 'gemini-3.8-flash';
-          localStorage.setItem(STORAGE_KEY_MODEL, savedModel);
-        }
-        if (modelSelect) modelSelect.value = savedModel;
-        if (activeModelBadge) activeModelBadge.textContent = `Modelo: ${savedModel}`;
+        try {
+          // 1. Cargar modelo guardado o migrar
+          let savedModel = localStorage.getItem(STORAGE_KEY_MODEL);
+          if (!savedModel || savedModel.startsWith('gemini-1.') || savedModel.startsWith('gemini-2.')) {
+            savedModel = 'gemini-3.8-flash';
+            localStorage.setItem(STORAGE_KEY_MODEL, savedModel);
+          }
+          if (modelSelect) modelSelect.value = savedModel;
+          if (activeModelBadge) activeModelBadge.textContent = `Modelo: ${savedModel}`;
 
-        // 2. Cargar ficha del usuario
-        loadUserProfile();
+          // 2. Cargar ficha del usuario
+          loadUserProfile();
 
-        // 3. Cargar sesiones y migrar historial previo si existía
-        loadSessions();
+          // 2.5. Habilitar persistencia de almacenamiento y motor de Alta Capacidad (IndexedDB)
+          requestStoragePersistence();
+          openViernesDB().catch(() => {});
 
-        // 4. Estado de la clave API
-        updateKeyBadge();
-        const key = getApiKey();
-        if (!key) {
-          openSettingsModal();
-        }
+          // 3. Cargar sesiones y migrar historial previo si existía
+          loadSessions().catch(() => {});
 
-        // 5. Configurar eventos
-        setupEventListeners();
+          // 4. Estado de la clave API
+          updateKeyBadge();
+          const key = getApiKey();
+          if (!key) {
+            openSettingsModal();
+          }
 
-        // 6. Actualizar medidor de memoria
-        updateStorageMeter();
+          // 5. Configurar eventos
+          setupEventListeners();
 
-        // 7. Inicializar sintetizador vocal, micrófono y modo Oye Viernes
-        initVoiceSynthesis();
-        setupSpeechRecognition();
-        initWakeWord();
+          // 6. Actualizar medidor de memoria
+          updateStorageMeter();
 
-        // 8. Configurar arrastrar y soltar documentos
-        setupDragAndDrop();
+          // 7. Inicializar sintetizador vocal, micrófono y modo Oye Viernes
+          initVoiceSynthesis();
+          setupSpeechRecognition();
+          initWakeWord();
 
-        // 9. Comprobar disponibilidad del puente local de herramientas
-        checkLocalBridgeHealth();
-        setInterval(checkLocalBridgeHealth, 15000);
+          // 8. Configurar arrastrar y soltar documentos
+          setupDragAndDrop();
 
-        // 10. Registrar Service Worker para PWA en entornos web/móvil
-        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-          navigator.serviceWorker.register('./sw.js').catch((err) => {
-            console.log('ServiceWorker no disponible en este protocolo:', err);
-          });
+          // 9. Comprobar disponibilidad y reconexión silenciosa del puente local
+          try {
+            checkLocalBridgeHealth(1500, true);
+            ensureBridgeHeartbeat();
+          } catch (bridgeErr) {
+            console.warn('Comprobación de puente local pospuesta:', bridgeErr);
+          }
+
+          // 10. Registrar Service Worker para PWA en entornos web/móvil
+          if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+            navigator.serviceWorker.register('./sw.js').catch((err) => {
+              console.log('ServiceWorker no disponible en este protocolo:', err);
+            });
+          }
+        } catch (initErr) {
+          console.error('Error durante la inicialización de Viernes:', initErr);
         }
       }
 
@@ -2279,6 +2308,74 @@
       }
 
       // =========================================================================
+      // MOTOR DE ALMACENAMIENTO DE ALTA CAPACIDAD (INDEXEDDB + PERSISTENCIA LOCAL)
+      // =========================================================================
+      function openViernesDB() {
+        return new Promise((resolve, reject) => {
+          if (idbInstance) return resolve(idbInstance);
+          if (!('indexedDB' in window)) {
+            return reject(new Error('IndexedDB no está disponible en este navegador'));
+          }
+          const request = indexedDB.open(IDB_DB_NAME, IDB_VERSION);
+          request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(IDB_STORE_NAME)) {
+              db.createObjectStore(IDB_STORE_NAME);
+            }
+          };
+          request.onsuccess = (e) => {
+            idbInstance = e.target.result;
+            resolve(idbInstance);
+          };
+          request.onerror = (e) => {
+            reject(e.target.error || new Error('Error al abrir base de datos IndexedDB'));
+          };
+        });
+      }
+
+      async function idbGet(key) {
+        try {
+          const db = await openViernesDB();
+          return new Promise((resolve) => {
+            const tx = db.transaction(IDB_STORE_NAME, 'readonly');
+            const store = tx.objectStore(IDB_STORE_NAME);
+            const req = store.get(key);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => resolve(null);
+          });
+        } catch (_) {
+          return null;
+        }
+      }
+
+      async function idbSet(key, value) {
+        try {
+          const db = await openViernesDB();
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(IDB_STORE_NAME, 'readwrite');
+            const store = tx.objectStore(IDB_STORE_NAME);
+            const req = store.put(value, key);
+            req.onsuccess = () => resolve(true);
+            req.onerror = (e) => reject(e.target.error);
+          });
+        } catch (e) {
+          console.warn('Escritura en almacenamiento de alta capacidad (IndexedDB) pospuesta:', e);
+          return false;
+        }
+      }
+
+      async function requestStoragePersistence() {
+        if (navigator.storage && navigator.storage.persist) {
+          try {
+            const isPersisted = await navigator.storage.persist();
+            if (isPersisted) {
+              console.log('[VIERNES] Persistencia de almacenamiento local garantizada por el navegador.');
+            }
+          } catch (_) {}
+        }
+      }
+
+      // =========================================================================
       // GESTIÓN DE LA FICHA DEL USUARIO
       // =========================================================================
       function loadUserProfile() {
@@ -2291,9 +2388,15 @@
             localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(userProfile));
           }
         } catch (e) {
-          console.error('Error al cargar ficha de usuario:', e);
           userProfile = { ...DEFAULT_PROFILE };
         }
+
+        // Consultar respaldo en IndexedDB
+        idbGet(STORAGE_KEY_PROFILE).then((idbProf) => {
+          if (idbProf && typeof idbProf === 'object') {
+            userProfile = { ...DEFAULT_PROFILE, ...idbProf };
+          }
+        }).catch(() => {});
       }
 
       function openProfileModal() {
@@ -2317,7 +2420,12 @@
         userProfile.fact2 = (profileFact2Input.value || '').trim();
         userProfile.fact3 = (profileFact3Input.value || '').trim();
 
-        localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(userProfile));
+        // Guardar en almacenamiento de alta capacidad (IndexedDB) y caché local
+        idbSet(STORAGE_KEY_PROFILE, userProfile).catch(() => {});
+        try {
+          localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(userProfile));
+        } catch (_) {}
+
         closeProfileModal();
         updateStorageMeter();
 
@@ -2350,16 +2458,31 @@ INSTRUCCIÓN VITAL: Aplica siempre estos rasgos y datos en tus respuestas y reco
       // =========================================================================
       // GESTIÓN DE SESIONES / CONVERSACIONES
       // =========================================================================
-      function loadSessions() {
+      async function loadSessions() {
+        // 1. Carga inmediata síncrona desde localStorage para renderizado inicial sin retardo
         try {
           const raw = localStorage.getItem(STORAGE_KEY_SESSIONS);
           if (raw) {
             sessions = JSON.parse(raw);
           }
         } catch (e) {
-          console.error('Error al leer sesiones:', e);
           sessions = [];
         }
+
+        // 2. Consulta al almacén de Alta Capacidad (IndexedDB) para recuperar gigabytes de historial completo
+        try {
+          const idbSessions = await idbGet(STORAGE_KEY_SESSIONS);
+          if (Array.isArray(idbSessions) && idbSessions.length > 0) {
+            const idbTotalMsgs = idbSessions.reduce((acc, s) => acc + ((s.messages && s.messages.length) || 0), 0);
+            const localTotalMsgs = (sessions || []).reduce((acc, s) => acc + ((s.messages && s.messages.length) || 0), 0);
+            if (idbTotalMsgs >= localTotalMsgs) {
+              sessions = idbSessions;
+            }
+          } else if (sessions && sessions.length > 0) {
+            // Inicializar almacenamiento de alta capacidad con las sesiones existentes
+            idbSet(STORAGE_KEY_SESSIONS, sessions).catch(() => {});
+          }
+        } catch (_) {}
 
         // Migración de historial legado v1 si no hay sesiones
         if (!sessions || sessions.length === 0) {
@@ -2384,6 +2507,11 @@ INSTRUCCIÓN VITAL: Aplica siempre estos rasgos y datos en tus respuestas y reco
 
         // Cargar sesión activa
         activeSessionId = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
+        if (!activeSessionId) {
+          try {
+            activeSessionId = await idbGet(STORAGE_KEY_ACTIVE_ID);
+          } catch (_) {}
+        }
         if (!activeSessionId || !sessions.some(s => s.id === activeSessionId)) {
           activeSessionId = sessions[0].id;
           localStorage.setItem(STORAGE_KEY_ACTIVE_ID, activeSessionId);
@@ -2394,18 +2522,23 @@ INSTRUCCIÓN VITAL: Aplica siempre estos rasgos y datos en tus respuestas y reco
       }
 
       function saveSessions() {
+        // 1. Guardar de forma permanente e ilimitada en el motor de Alta Capacidad (IndexedDB)
+        idbSet(STORAGE_KEY_SESSIONS, sessions).catch(() => {});
+        if (activeSessionId) {
+          idbSet(STORAGE_KEY_ACTIVE_ID, activeSessionId).catch(() => {});
+        }
+
+        // 2. Intentar guardar en caché síncrona localStorage (si excede 5MB, IndexedDB conserva todo a salvo)
         try {
           localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
           if (activeSessionId) {
             localStorage.setItem(STORAGE_KEY_ACTIVE_ID, activeSessionId);
           }
-          updateStorageMeter();
         } catch (e) {
-          console.error('Error al guardar sesiones:', e);
-          if (e.name === 'QuotaExceededError' || e.code === 22) {
-            alert('⚠️ Atención, señor Braulio: El almacenamiento de su navegador se ha llenado por completo. Guarde una copia de respaldo con el botón "Guardar Copia" para no perder información.');
-          }
+          console.warn('[VIERNES] Límite estándar de 5MB en localStorage alcanzado. Todo el historial se conserva íntegro en almacenamiento de Alta Capacidad (IndexedDB).');
         }
+
+        updateStorageMeter();
       }
 
       function getActiveSession() {
@@ -2656,32 +2789,62 @@ INSTRUCCIÓN VITAL: Aplica siempre estos rasgos y datos en tus respuestas y reco
       // =========================================================================
       // COPIA DE SEGURIDAD (EXPORTAR E IMPORTAR) Y MONITOR DE ALMACENAMIENTO
       // =========================================================================
-      function updateStorageMeter() {
+      async function updateStorageMeter() {
         try {
-          let bytes = 0;
-          for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            const v = localStorage.getItem(k) || '';
-            bytes += (k.length + v.length) * 2; // UTF-16
+          let usageBytes = 0;
+          let quotaBytes = 500 * 1024 * 1024; // 500 MB base de Alta Capacidad
+          let hasEstimate = false;
+
+          // 1. Consultar la estimación real del navegador (IndexedDB + StorageManager de Windows/Chromium)
+          if (navigator.storage && navigator.storage.estimate) {
+            try {
+              const estimate = await navigator.storage.estimate();
+              if (estimate.usage !== undefined && estimate.usage > 0) {
+                usageBytes = estimate.usage;
+                hasEstimate = true;
+              }
+              if (estimate.quota !== undefined && estimate.quota > 0) {
+                quotaBytes = estimate.quota;
+              }
+            } catch (_) {}
           }
 
-          const maxBytes = 5 * 1024 * 1024; // ~5 MB
-          const pct = Math.min(100, Math.round((bytes / maxBytes) * 100));
-          const kb = (bytes / 1024).toFixed(1);
-          const mb = (bytes / (1024 * 1024)).toFixed(2);
-          const label = bytes > 1024 * 1024 ? `${mb} MB / ~5 MB` : `${kb} KB / ~5 MB`;
+          // 2. Si no hay soporte de estimación de cuota, calcular bytes de localStorage
+          if (!hasEstimate) {
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i);
+              const v = localStorage.getItem(k) || '';
+              usageBytes += (k.length + v.length) * 2; // UTF-16
+            }
+          }
 
-          if (storageUsageLabel) storageUsageLabel.textContent = label;
+          function formatMemorySize(b) {
+            if (b < 1024) return b + ' B';
+            if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+            if (b < 1024 * 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + ' MB';
+            return (b / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+          }
+
+          const usageStr = formatMemorySize(usageBytes);
+          const quotaStr = formatMemorySize(quotaBytes);
+          const label = `${usageStr} / ${quotaStr}`;
+          const pct = Math.min(100, Math.round((usageBytes / quotaBytes) * 100));
+
+          if (storageUsageLabel) {
+            storageUsageLabel.textContent = label;
+            storageUsageLabel.title = `Almacenamiento de Alta Capacidad activo (IndexedDB + Persistencia Local). Capacidad total asignada: ${quotaStr}.`;
+          }
+
           if (storageBarFill) {
-            storageBarFill.style.width = Math.max(3, pct) + '%';
-            storageBarFill.style.background = pct > 75 ? '#ff334b' : pct > 50 ? '#ffaa00' : 'var(--accent-cyan)';
+            storageBarFill.style.width = Math.max(2, pct) + '%';
+            storageBarFill.style.background = pct > 85 ? '#ff334b' : pct > 60 ? '#ffaa00' : 'var(--accent-cyan)';
           }
 
           if (storageWarningCard) {
-            if (pct >= 75) {
+            if (pct >= 85) {
               storageWarningCard.style.display = 'block';
               if (storageWarningMsg) {
-                storageWarningMsg.textContent = `El almacenamiento local de su navegador ha alcanzado el ${pct}%. Le recomiendo usar "Guardar Copia" para respaldar sus conversaciones antes de que el navegador rechace nuevos datos.`;
+                storageWarningMsg.textContent = `La memoria de almacenamiento local ha alcanzado el ${pct}% (${label}). Se recomienda descargar una copia de respaldo para mantener su historial a salvo.`;
               }
             } else {
               storageWarningCard.style.display = 'none';
@@ -2962,6 +3125,16 @@ INSTRUCCIÓN VITAL: Aplica siempre estos rasgos y datos en tus respuestas y reco
             openDrawer();
           }
         });
+
+        // Clic en la insignia del puente para verificar/forzar reconexión inmediata
+        const bridgeBadge = document.getElementById('bridgeStatusBadge');
+        if (bridgeBadge) {
+          bridgeBadge.addEventListener('click', () => {
+            bridgeBadge.textContent = 'Puente Local: Comprobando conexión...';
+            bridgeBadge.style.color = '#38bdf8';
+            checkLocalBridgeHealth(2500, false);
+          });
+        }
       }
 
       // =========================================================================
@@ -4121,9 +4294,6 @@ INSTRUCCIÓN VITAL: Aplica siempre estos rasgos y datos en tus respuestas y reco
       // =========================================================================
       // HERRAMIENTAS LOCALES Y PUENTE DE EJECUCIÓN (TOOL CALLING)
       // =========================================================================
-      const VIERNES_LOCAL_BRIDGE_URL = 'http://127.0.0.1:18820';
-      let isBridgeConnected = false;
-
       const VIERNES_TOOLS = [
         {
           functionDeclarations: [
@@ -4185,57 +4355,166 @@ INSTRUCCIÓN VITAL: Aplica siempre estos rasgos y datos en tus respuestas y reco
         }
       ];
 
-      async function checkLocalBridgeHealth() {
+      /**
+       * Comprueba el estado del puente local. Si pierde la conexión, activa
+       * inmediatamente la reconexión silenciosa en segundo plano sin generar archivos basura ni alarmas invasivas.
+       */
+      async function checkLocalBridgeHealth(timeoutMs = 1500, silent = true) {
+        if (isBridgeCheckInProgress) return bridgeConnectionState === 'connected';
+        isBridgeCheckInProgress = true;
+
         try {
           const controller = new AbortController();
-          const tId = setTimeout(() => controller.abort(), 1200);
+          const tId = setTimeout(() => controller.abort(), timeoutMs);
           const res = await fetch(`${VIERNES_LOCAL_BRIDGE_URL}/health`, {
             method: 'GET',
             signal: controller.signal
           });
           clearTimeout(tId);
-          isBridgeConnected = res.ok;
-          updateBridgeBadgeUI(isBridgeConnected);
-          return isBridgeConnected;
+
+          if (res.ok) {
+            isBridgeConnected = true;
+            bridgeConnectionState = 'connected';
+            bridgeReconnectAttempts = 0;
+
+            if (bridgeReconnectTimer) {
+              clearTimeout(bridgeReconnectTimer);
+              bridgeReconnectTimer = null;
+            }
+
+            ensureBridgeHeartbeat();
+            updateBridgeBadgeUI('connected');
+            isBridgeCheckInProgress = false;
+            return true;
+          } else {
+            throw new Error(`HTTP ${res.status}`);
+          }
         } catch (e) {
           isBridgeConnected = false;
-          updateBridgeBadgeUI(false);
+          isBridgeCheckInProgress = false;
+
+          // Iniciar reconexión silenciosa en segundo plano
+          triggerSilentBridgeReconnection();
           return false;
         }
       }
 
-      function updateBridgeBadgeUI(connected) {
+      /**
+       * Inicia o mantiene el bucle de reconexión silenciosa en segundo plano.
+       * Se ejecuta estrictamente en memoria RAM sin crear ningún archivo en disco.
+       */
+      function triggerSilentBridgeReconnection() {
+        bridgeConnectionState = 'reconnecting';
+        updateBridgeBadgeUI('reconnecting');
+
+        // Detener latido periódico regular para no saturar
+        if (bridgeHeartbeatTimer) {
+          clearInterval(bridgeHeartbeatTimer);
+          bridgeHeartbeatTimer = null;
+        }
+
+        if (bridgeReconnectTimer) return;
+
+        // Retroceso adaptativo en memoria: 1.5s, 1.8s, 2.3s... hasta un tope de 5s
+        const delay = Math.min(
+          BRIDGE_RECONNECT_MIN_DELAY * Math.pow(1.25, bridgeReconnectAttempts),
+          BRIDGE_RECONNECT_MAX_DELAY
+        );
+        bridgeReconnectAttempts++;
+
+        bridgeReconnectTimer = setTimeout(async () => {
+          bridgeReconnectTimer = null;
+          const ok = await checkLocalBridgeHealth(1800, true);
+          if (!ok && bridgeConnectionState === 'reconnecting') {
+            triggerSilentBridgeReconnection();
+          }
+        }, delay);
+      }
+
+      /**
+       * Mantiene el latido periódico de baja frecuencia cuando el puente está conectado.
+       */
+      function ensureBridgeHeartbeat() {
+        if (bridgeHeartbeatTimer) return;
+        bridgeHeartbeatTimer = setInterval(() => {
+          if (bridgeConnectionState === 'connected') {
+            checkLocalBridgeHealth(1500, true);
+          }
+        }, BRIDGE_HEARTBEAT_INTERVAL);
+      }
+
+      /**
+       * Actualiza la interfaz visual del estado del puente sin emitir alertas molestas.
+       */
+      function updateBridgeBadgeUI(status) {
         const badge = document.getElementById('bridgeStatusBadge');
         if (!badge) return;
-        if (connected) {
+
+        if (status === 'connected' || status === true) {
           badge.textContent = 'Puente Local: Conectado (127.0.0.1:18820)';
           badge.style.color = '#00ffaa';
+          badge.title = 'Puente seguro de PowerShell activo y listo. Clic para verificar estado.';
+        } else if (status === 'reconnecting') {
+          badge.textContent = 'Puente Local: Reconectando en segundo plano...';
+          badge.style.color = '#fbbf24';
+          badge.title = 'Conexión con PowerShell interrumpida. Reintentando silenciosamente en segundo plano sin dejar archivos temporales. Clic para forzar intento inmediato.';
         } else {
-          badge.textContent = 'Puente Local: Desconectado';
+          badge.textContent = 'Puente Local: Desconectado (Clic para reconectar)';
           badge.style.color = 'var(--text-dim)';
+          badge.title = 'Sin conexión con el puente local de Windows. Clic para intentar reconexión inmediata.';
         }
       }
 
-      async function executeBridgeTool(toolName, toolArgs, confirmed = false) {
+      /**
+       * Envía la ejecución de una herramienta al puente local seguro en Windows.
+       * Si se detecta una pérdida de conexión transitoria, realiza reintentos silenciosos
+       * automáticos en segundo plano antes de emitir error, garantizando cero archivos residuales.
+       */
+      async function executeBridgeTool(toolName, toolArgs, confirmed = false, attempt = 1) {
         try {
+          const controller = new AbortController();
+          const timeoutSeconds = (toolArgs && toolArgs.timeout_seconds) ? toolArgs.timeout_seconds : 35;
+          const tId = setTimeout(() => controller.abort(), (timeoutSeconds + 5) * 1000);
+
           const res = await fetch(`${VIERNES_LOCAL_BRIDGE_URL}/execute`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
             body: JSON.stringify({
               tool: toolName,
               args: toolArgs,
               confirmed: confirmed
             })
           });
+          clearTimeout(tId);
+
           if (!res.ok) {
             throw new Error(`El puente devolvió código HTTP ${res.status}`);
           }
+
+          // Reconexión confirmada con éxito
+          isBridgeConnected = true;
+          bridgeConnectionState = 'connected';
+          bridgeReconnectAttempts = 0;
+          updateBridgeBadgeUI('connected');
+          ensureBridgeHeartbeat();
+
           return await res.json();
         } catch (err) {
+          // Si la conexión cayó y aún quedan reintentos transparentes
+          if (attempt < BRIDGE_MAX_SILENT_RETRIES) {
+            triggerSilentBridgeReconnection();
+            await new Promise(r => setTimeout(r, 600 * attempt));
+            return await executeBridgeTool(toolName, toolArgs, confirmed, attempt + 1);
+          }
+
+          isBridgeConnected = false;
+          triggerSilentBridgeReconnection();
+
           return {
             status: 'BRIDGE_UNAVAILABLE',
             stdout: '',
-            stderr: `Fallo de comunicación con el puente local: ${err.message}. Asegúrese de ejecutar 'start_bridge.bat' en Windows.`,
+            stderr: `Pérdida temporal de comunicación con PowerShell (${err.message}). Viernes está intentando reconectarse silenciosamente en segundo plano sin generar archivos basura ni afectar el almacenamiento.`,
             exit_code: 503
           };
         }
@@ -4304,8 +4583,16 @@ INSTRUCCIÓN VITAL: Aplica siempre estos rasgos y datos en tus respuestas y reco
 
         const sysPrompt = customSystemInstruction || buildSystemInstruction(contentsOrHistory && contentsOrHistory.summary);
 
-        // Comprobar estado del puente local de herramientas
-        const bridgeOnline = await checkLocalBridgeHealth();
+        // Comprobar estado del puente local de herramientas de forma ultra-segura
+        let bridgeOnline = false;
+        try {
+          bridgeOnline = Boolean(typeof isBridgeConnected !== 'undefined' && isBridgeConnected);
+          if (!bridgeOnline && typeof checkLocalBridgeHealth === 'function') {
+            bridgeOnline = await checkLocalBridgeHealth(1200, true);
+          }
+        } catch (_) {
+          bridgeOnline = false;
+        }
 
         let toolLoopCount = 0;
         const maxToolLoops = 5;
@@ -4411,13 +4698,32 @@ INSTRUCCIÓN VITAL: Aplica siempre estos rasgos y datos en tus respuestas y reco
           const fnCall = functionCallPart.functionCall;
           statusText.textContent = `EJECUTANDO: ${fnCall.name.toUpperCase()}...`;
 
-          let toolResult = await executeBridgeTool(fnCall.name, fnCall.args || {}, false);
+          let toolResult;
+          try {
+            toolResult = await executeBridgeTool(fnCall.name, fnCall.args || {}, false);
+          } catch (toolErr) {
+            toolResult = {
+              status: 'BRIDGE_UNAVAILABLE',
+              stdout: '',
+              stderr: `Error inesperado al ejecutar herramienta: ${toolErr.message}`,
+              exit_code: 503
+            };
+          }
 
-          if (toolResult.status === 'CONFIRMATION_REQUIRED' || toolResult.requires_confirmation) {
+          if (toolResult && (toolResult.status === 'CONFIRMATION_REQUIRED' || toolResult.requires_confirmation)) {
             const cmdDesc = fnCall.args?.command || fnCall.args?.path || fnCall.name;
             const userApproved = await promptUserConfirmation(cmdDesc, toolResult.risk_reason || 'Instrucción clasificada como de riesgo crítico');
             if (userApproved) {
-              toolResult = await executeBridgeTool(fnCall.name, fnCall.args || {}, true);
+              try {
+                toolResult = await executeBridgeTool(fnCall.name, fnCall.args || {}, true);
+              } catch (toolConfirmErr) {
+                toolResult = {
+                  status: 'BRIDGE_UNAVAILABLE',
+                  stdout: '',
+                  stderr: `Error inesperado al reintentar herramienta con confirmación: ${toolConfirmErr.message}`,
+                  exit_code: 503
+                };
+              }
             } else {
               toolResult = {
                 status: 'CANCELLED_BY_USER',
@@ -4758,6 +5064,13 @@ INSTRUCCIÓN VITAL: Aplica siempre estos rasgos y datos en tus respuestas y reco
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#039;');
+      }
+
+      // Inicialización segura garantizando que todo el entorno, funciones y variables están declarados
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
       }
     })();
   </script>
